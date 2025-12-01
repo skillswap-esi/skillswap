@@ -1,0 +1,14 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: service-skill
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/skillswap-skills
+      auto-index-creation: true
+
+logging:
+  level:
+    com.skillswap.skill: DEBUG

@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # MongoDB - Base de données principale
+  mongodb:
+    image: mongo:7.0
+    container_name: skillswap-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: skillswap
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - skillswap-network
+    restart: unless-stopped
+
+  # Redis - Cache et stockage OTP
+  redis:
+    image: redis:7.2-alpine
+    container_name: skillswap-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - skillswap-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # Kafka (Optionnel - pour les événements)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: skillswap-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - skillswap-network
+    restart: unless-stopped
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: skillswap-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - skillswap-network
+    restart: unless-stopped
+
+  # Mongo Express - Interface web pour MongoDB (Optionnel)
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: skillswap-mongo-express
+    depends_on:
+      - mongodb
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/
+      ME_CONFIG_BASICAUTH: false
+    networks:
+      - skillswap-network
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  skillswap-network:
+    driver: bridge

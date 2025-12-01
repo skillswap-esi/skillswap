@@ -1,0 +1,18 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: service-user
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/skillswap-users
+      auto-index-creation: true
+
+jwt:
+  secret: skillswap-secret-key-change-this-in-production
+  expiration: 86400000
+
+logging:
+  level:
+    com.skillswap.user: DEBUG
