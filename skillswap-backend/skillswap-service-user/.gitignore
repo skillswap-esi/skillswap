@@ -31,3 +31,16 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Firebase Credentials (IMPORTANT - DO NOT COMMIT) ###
+src/main/resources/firebase-service-account.json
+src/main/resources/*firebase*.json
+
+### Environment Variables ###
+.env
+.env.local
+.env.production
+
+### Logs ###
+*.log
+logs/

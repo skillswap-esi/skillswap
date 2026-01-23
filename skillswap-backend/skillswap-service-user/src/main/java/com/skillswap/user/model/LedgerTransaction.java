@@ -12,7 +12,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Document("ledgerTransactions")
+@Document("ledger_transactions")
 public class LedgerTransaction {
     
     @Id
@@ -20,7 +20,8 @@ public class LedgerTransaction {
     
     private UUID fromUserId;
     private UUID toUserId;
-    private int amount; // 5 (MVP)
+    private int amount;
     private UUID missionId;
     private Date timestamp;
+    private String description;
 }

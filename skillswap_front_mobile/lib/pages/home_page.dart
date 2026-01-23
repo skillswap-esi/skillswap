@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../core/app_assets.dart';
 import '../widgets/custom_drawer.dart';
+import '../auth_service.dart';
+import '../providers/user_provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -124,8 +126,35 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class HomeContent extends StatelessWidget {
+class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
+
+  @override
+  State<HomeContent> createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<HomeContent> {
+  @override
+  void initState() {
+    super.initState();
+    // Sync user data from auth service
+    userProvider.syncFromAuthService();
+  }
+
+  String get _userName {
+    // Try backend profile first, then Firebase, then default
+    final backendName = authService.value.userProfile?.fullName;
+    if (backendName != null && backendName.isNotEmpty) {
+      return backendName.split(' ').first; // First name only
+    }
+    final firebaseName = authService.value.currentUser?.displayName;
+    if (firebaseName != null && firebaseName.isNotEmpty) {
+      return firebaseName.split(' ').first;
+    }
+    return 'User';
+  }
+
+  int get _creditsBalance => authService.value.userProfile?.creditsBalance ?? 0;
 
   @override
   Widget build(BuildContext context) {
@@ -149,20 +178,20 @@ class HomeContent extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Hello, Welcome! 👋',
-                            style: TextStyle(
+                            'Hello, $_userName! 👋',
+                            style: const TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
                           ),
-                          SizedBox(height: 8),
-                          Text(
+                          const SizedBox(height: 8),
+                          const Text(
                             'Ready to swap some skills today?',
                             style: TextStyle(
                               fontSize: 15,
@@ -172,26 +201,38 @@ class HomeContent extends StatelessWidget {
                         ],
                       ),
                     ),
+                    // Credits Badge
                     Container(
-                      width: 70,
-                      height: 70,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5),
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.monetization_on,
+                            color: Colors.amber,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$_creditsBalance',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                         ],
-                      ),
-                      padding: const EdgeInsets.all(12),
-                      child: ClipOval(
-                        child: Image.asset(
-                          AppAssets.logo,
-                          fit: BoxFit.cover,
-                        ),
                       ),
                     ),
                   ],

@@ -32,6 +32,7 @@ public class User {
     private float helperScore; // 0..5
     private String avatar; // URL ou key
     private List<String> roles; // ["USER"], ["ADMIN"]
+    private List<String> fcmTokens; // Tokens pour notifications push
     private Date createdAt;
     private Date updatedAt;
 }

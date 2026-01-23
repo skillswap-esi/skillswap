@@ -307,5 +307,5 @@ R : Redis permet une expiration automatique des clés, parfait pour des codes te
 
 ---
 
-**Version** : 1.0.0  
+**Version** : 1.0.0  o
 **Dernière mise à jour** : 1 Décembre 2024

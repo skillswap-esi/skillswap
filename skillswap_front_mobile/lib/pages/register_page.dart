@@ -5,6 +5,7 @@ import '../core/app_colors.dart';
 import '../core/app_assets.dart';
 import 'login_page.dart';
 import 'home_page.dart';
+import 'complete_profile_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -17,6 +18,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
@@ -27,6 +29,7 @@ class _RegisterPageState extends State<RegisterPage> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -59,21 +62,35 @@ class _RegisterPageState extends State<RegisterPage> {
       });
 
       try {
-        await authService.value.createAccount(
+        // Use the new register method that handles both Firebase and backend
+        final user = await authService.value.register(
           email: _emailController.text.trim(),
           password: _passwordController.text,
-        );
-
-        await authService.value.updateUsername(
-          username: _nameController.text.trim(),
+          fullName: _nameController.text.trim(),
+          phoneNumber: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
         );
 
         if (mounted) {
           _showSuccess('Account created successfully!');
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
-          );
+          
+          // Check if phone number is missing
+          final phoneNumberMissing = user.phoneNumber == null || user.phoneNumber!.isEmpty;
+          
+          if (phoneNumberMissing) {
+            // Navigate to complete profile page
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CompleteProfilePage(phoneNumberMissing: true),
+              ),
+            );
+          } else {
+            // Navigate directly to home
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const HomePage()),
+            );
+          }
         }
       } on FirebaseAuthException catch (e) {
         String errorMessage;
@@ -99,7 +116,14 @@ class _RegisterPageState extends State<RegisterPage> {
         }
       } catch (e) {
         if (mounted) {
-          _showError('An unexpected error occurred');
+          // Check if it's an API exception from the backend
+          String errorMessage = 'An unexpected error occurred';
+          if (e.toString().contains('already exists')) {
+            errorMessage = 'This email or phone is already registered.';
+          } else if (e.toString().contains('connection')) {
+            errorMessage = 'Could not connect to server. Please try again.';
+          }
+          _showError(errorMessage);
         }
       } finally {
         if (mounted) {
@@ -170,7 +194,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withOpacity(0.2),
+                          color: AppColors.primary.withValues(alpha: 0.2),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -230,6 +254,24 @@ class _RegisterPageState extends State<RegisterPage> {
                     }
                     if (!value.contains('@')) {
                       return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 18),
+                TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: _buildInputDecoration(
+                    label: 'Phone Number (Optional)',
+                    prefixIcon: Icons.phone_outlined,
+                  ),
+                  validator: (value) {
+                    if (value != null && value.isNotEmpty) {
+                      // Basic phone validation
+                      if (!value.startsWith('+') && !RegExp(r'^[0-9]+$').hasMatch(value)) {
+                        return 'Please enter a valid phone number';
+                      }
                     }
                     return null;
                   },
@@ -302,7 +344,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       elevation: 4,
-                      shadowColor: AppColors.primary.withOpacity(0.4),
+                      shadowColor: AppColors.primary.withValues(alpha: 0.4),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),

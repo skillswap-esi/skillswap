@@ -10,7 +10,18 @@ class CustomDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = authService.value.currentUser;
+    final firebaseUser = authService.value.currentUser;
+    final backendProfile = authService.value.userProfile;
+    
+    // Prioritize backend data, fallback to Firebase data
+    final displayName = backendProfile?.fullName ?? 
+                        firebaseUser?.displayName ?? 
+                        'User Name';
+    final email = backendProfile?.email ?? 
+                  firebaseUser?.email ?? 
+                  'user@example.com';
+    final credits = backendProfile?.creditsBalance ?? 0;
+    final isPhoneVerified = backendProfile?.phoneVerified ?? false;
     
     return Drawer(
       child: Column(
@@ -24,40 +35,94 @@ class CustomDrawer extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
+                Row(
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.15),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.all(14),
-                  child: ClipOval(
-                    child: Image.asset(
-                      AppAssets.logo,
-                      fit: BoxFit.cover,
+                      padding: const EdgeInsets.all(14),
+                      child: ClipOval(
+                        child: Image.asset(
+                          AppAssets.logo,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
-                  ),
+                    const Spacer(),
+                    // Credits Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.monetization_on,
+                            color: Colors.amber,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$credits',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  user?.displayName ?? 'User Name',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        displayName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (isPhoneVerified)
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.verified,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  user?.email ?? 'user@example.com',
+                  email,
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.8),
                     fontSize: 14,

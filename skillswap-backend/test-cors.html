@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test CORS</title>
+</head>
+<body>
+    <h1>Test Backend Connection</h1>
+    <button onclick="testConnection()">Test Connection</button>
+    <button onclick="testRegistration()">Test Registration</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testConnection() {
+            const result = document.getElementById('result');
+            result.textContent = 'Testing connection...';
+            
+            try {
+                const response = await fetch('http://localhost:8080/actuator/health');
+                const data = await response.json();
+                result.textContent = 'SUCCESS!\n' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                result.textContent = 'ERROR: ' + error.message;
+            }
+        }
+
+        async function testRegistration() {
+            const result = document.getElementById('result');
+            result.textContent = 'Testing registration...';
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'test@test.com',
+                        fullName: 'Test User',
+                        phoneNumber: '+33612345678',
+                        idToken: 'test-token'
+                    })
+                });
+                
+                const data = await response.text();
+                result.textContent = `Status: ${response.status}\n${data}`;
+            } catch (error) {
+                result.textContent = 'ERROR: ' + error.message + '\n\nThis might be a CORS issue.';
+            }
+        }
+    </script>
+</body>
+</html>

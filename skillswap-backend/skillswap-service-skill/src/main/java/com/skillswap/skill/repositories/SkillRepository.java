@@ -1,6 +1,8 @@
 package com.skillswap.skill.repositories;
 
 import com.skillswap.skill.model.Skill;
+import org.springframework.data.geo.Distance;
+import org.springframework.data.geo.Point;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
@@ -12,9 +14,9 @@ public interface SkillRepository extends MongoRepository<Skill, UUID> {
     
     List<Skill> findByOwnerId(UUID ownerId);
     
-    List<Skill> findByCategory(String category);
-    
-    List<Skill> findByOwnerIdAndActive(UUID ownerId, boolean active);
+    List<Skill> findByGeoPointNear(Point point, Distance distance);
     
     List<Skill> findByActiveTrue();
+    
+    List<Skill> findByCategory(String category);
 }
