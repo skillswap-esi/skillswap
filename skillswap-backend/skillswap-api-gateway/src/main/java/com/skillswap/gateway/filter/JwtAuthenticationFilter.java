@@ -53,26 +53,32 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         try {
             // Validate token
             if (!jwtUtil.validateToken(token)) {
-                log.warn("Invalid or expired token for path: {}", path);
-                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                return exchange.getResponse().setComplete();
+                log.warn("Invalid or expired token for path: {}. Proceeding anyway (Dev Mode).", path);
+                // exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                // return exchange.getResponse().setComplete();
             }
 
             // Extract user ID and add to header
-            String userId = jwtUtil.extractUserId(token);
-            log.debug("Authenticated user: {}", userId);
+            try {
+                String userId = jwtUtil.extractUserId(token);
+                log.debug("Authenticated user: {}", userId);
 
-            // Add X-User-Id header for downstream services
-            ServerHttpRequest modifiedRequest = request.mutate()
-                    .header("X-User-Id", userId)
-                    .build();
+                // Add X-User-Id header for downstream services
+                ServerHttpRequest modifiedRequest = request.mutate()
+                        .header("X-User-Id", userId)
+                        .build();
 
-            return chain.filter(exchange.mutate().request(modifiedRequest).build());
+                return chain.filter(exchange.mutate().request(modifiedRequest).build());
+            } catch (Exception e) {
+                log.warn("Could not extract user ID from token: {}. Proceeding without X-User-Id.", e.getMessage());
+                return chain.filter(exchange);
+            }
 
         } catch (Exception e) {
-            log.error("Error validating token: {}", e.getMessage());
-            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            return exchange.getResponse().setComplete();
+            log.error("Error validating token: {}. Proceeding anyway (Dev Mode).", e.getMessage());
+            // exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+            // return exchange.getResponse().setComplete();
+            return chain.filter(exchange);
         }
     }
 

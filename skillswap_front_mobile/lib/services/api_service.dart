@@ -216,11 +216,11 @@ class ApiService {
   }
 
   /// Get a user by their ID
-  Future<UserModel> getUserById(String userId) async {
+  Future<UserModel> getUserById(String userId, {required String authToken}) async {
     return _safeApiCall(() async {
       final response = await _client.get(
         Uri.parse('$_baseUrl${UserEndpoints.byId(userId)}'),
-        headers: _jsonHeaders,
+        headers: _authHeaders(authToken),
       );
 
       final data = _handleResponse(response);
@@ -229,11 +229,11 @@ class ApiService {
   }
 
   /// Get a user by their email
-  Future<UserModel> getUserByEmail(String email) async {
+  Future<UserModel> getUserByEmail(String email, {required String authToken}) async {
     return _safeApiCall(() async {
       final response = await _client.get(
         Uri.parse('$_baseUrl${UserEndpoints.byEmail(email)}'),
-        headers: _jsonHeaders,
+        headers: _authHeaders(authToken),
       );
 
       final data = _handleResponse(response);
@@ -247,6 +247,7 @@ class ApiService {
     String? fullName,
     String? phoneNumber,
     String? avatar,
+    required String authToken,
   }) async {
     return _safeApiCall(() async {
       final request = UpdateProfileRequest(
@@ -261,7 +262,7 @@ class ApiService {
 
       final response = await _client.put(
         uri,
-        headers: _jsonHeaders,
+        headers: _authHeaders(authToken),
         body: json.encode(request.toJson()),
       );
 
@@ -271,11 +272,11 @@ class ApiService {
   }
 
   /// Verify the user's phone number (awards bonus credits)
-  Future<UserModel> verifyPhone(String userId) async {
+  Future<UserModel> verifyPhone(String userId, String authToken) async {
     return _safeApiCall(() async {
       final response = await _client.post(
         Uri.parse('$_baseUrl${UserEndpoints.verifyPhone(userId)}'),
-        headers: _jsonHeaders,
+        headers: _authHeaders(authToken),
       );
 
       final data = _handleResponse(response);
@@ -287,6 +288,7 @@ class ApiService {
   Future<void> saveFcmToken({
     required String userId,
     required String fcmToken,
+    required String authToken,
   }) async {
     return _safeApiCall(() async {
       final uri = Uri.parse('$_baseUrl${UserEndpoints.fcmTokens}').replace(
@@ -295,7 +297,7 @@ class ApiService {
 
       final response = await _client.post(
         uri,
-        headers: _jsonHeaders,
+        headers: _authHeaders(authToken),
         body: json.encode({'fcmToken': fcmToken}),
       );
 
@@ -307,6 +309,7 @@ class ApiService {
   Future<List<LedgerTransaction>> getLedgerTransactions({
     required String userId,
     int limit = 50,
+    required String authToken,
   }) async {
     return _safeApiCall(() async {
       final uri = Uri.parse('$_baseUrl${UserEndpoints.ledger}').replace(
@@ -318,7 +321,7 @@ class ApiService {
 
       final response = await _client.get(
         uri,
-        headers: _jsonHeaders,
+        headers: _authHeaders(authToken),
       );
 
       final data = _handleResponse(response) as List;

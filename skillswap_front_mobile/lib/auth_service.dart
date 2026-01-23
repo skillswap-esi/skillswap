@@ -163,7 +163,13 @@ class AuthService {
     }
 
     try {
-      _userProfile = await apiService.getUserById(_userProfile!.userId!);
+      final idToken = await getIdToken();
+      if (idToken == null) return null;
+
+      _userProfile = await apiService.getUserById(
+        _userProfile!.userId!,
+        authToken: idToken,
+      );
       return _userProfile;
     } catch (e) {
       debugPrint('Error refreshing user profile: $e');
@@ -182,12 +188,16 @@ class AuthService {
     }
 
     try {
+      final idToken = await getIdToken();
+      if (idToken == null) throw Exception('No authenticated user');
+
       // Update in backend
       _userProfile = await apiService.updateProfile(
         userId: _userProfile!.userId!,
         fullName: fullName,
         phoneNumber: phoneNumber,
         avatar: avatar,
+        authToken: idToken,
       );
 
       // Also update display name in Firebase if changed
@@ -265,7 +275,10 @@ class AuthService {
     }
 
     try {
-      _userProfile = await apiService.verifyPhone(_userProfile!.userId!);
+      final idToken = await getIdToken();
+      if (idToken == null) throw Exception('No authenticated user');
+
+      _userProfile = await apiService.verifyPhone(_userProfile!.userId!, idToken);
       return _userProfile;
     } catch (e) {
       debugPrint('Error verifying phone: $e');
@@ -280,9 +293,13 @@ class AuthService {
     }
 
     try {
+      final idToken = await getIdToken();
+      if (idToken == null) return;
+
       await apiService.saveFcmToken(
         userId: _userProfile!.userId!,
         fcmToken: fcmToken,
+        authToken: idToken,
       );
       debugPrint('FCM token saved successfully');
     } catch (e) {
@@ -296,9 +313,13 @@ class AuthService {
       throw Exception('No user profile to get transactions for');
     }
 
+    final idToken = await getIdToken();
+    if (idToken == null) throw Exception('No authenticated user');
+
     return await apiService.getLedgerTransactions(
       userId: _userProfile!.userId!,
       limit: limit,
+      authToken: idToken,
     );
   }
 }
