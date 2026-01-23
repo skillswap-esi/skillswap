@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../auth_service.dart';
+import '../services/api_service.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -33,9 +34,28 @@ class _EditProfilePageState extends State<EditProfilePage> {
       });
 
       try {
+        final userId = authService.value.userProfile?.userId;
+        final firebaseUser = authService.value.currentUser;
+        
+        if (userId == null || firebaseUser == null) {
+          throw Exception('User not authenticated');
+        }
+
+        // Update Firebase
         await authService.value.updateUsername(
           username: _nameController.text.trim(),
         );
+
+        // Update MongoDB via API
+        final idToken = await firebaseUser.getIdToken();
+        await apiService.updateProfile(
+          userId: userId,
+          fullName: _nameController.text.trim(),
+          authToken: idToken,
+        );
+
+        // Refresh user profile
+        await authService.value.syncFromAuthService();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

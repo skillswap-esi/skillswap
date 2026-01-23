@@ -1,0 +1,64 @@
+========================================
+MONGODB ATLAS CLEANUP GUIDE
+========================================
+
+PROBLEM:
+MongoDB has a corrupted "2d" geospatial index that conflicts with the required "2dsphere" index for GeoJsonPoint.
+This causes "location array not in correct format" errors when creating skills.
+
+SOLUTION - MANUAL CLEANUP REQUIRED:
+You must manually clean MongoDB Atlas before the service can work properly.
+
+STEPS:
+------
+
+1. LOGIN TO MONGODB ATLAS
+   - Go to: https://cloud.mongodb.com
+   - Login with your credentials
+
+2. NAVIGATE TO YOUR DATABASE
+   - Click "Browse Collections"
+   - Select database: "skillswap-skills"
+   - Select collection: "skills"
+
+3. DELETE ALL DOCUMENTS
+   - Click "Delete" button for each document
+   - OR use "Delete All Documents" if available
+   - Confirm deletion
+
+4. DROP THE CORRUPTED INDEX
+   - Go to "Indexes" tab
+   - Find the index named "geoPoint" (type: 2d)
+   - Click "Drop Index"
+   - Confirm deletion
+
+5. RESTART SKILL SERVICE
+   - Stop the Skill Service if running
+   - Start it again: mvnw spring-boot:run
+   - The service will automatically create the correct "2dsphere" index
+
+6. VERIFY
+   - Check logs for: "Geospatial index created successfully"
+   - Test skill creation from mobile app
+   - Skills should now save properly with geolocation
+
+========================================
+WHAT HAPPENS AFTER CLEANUP:
+========================================
+
+- Spring Data MongoDB will create a proper "2dsphere" index
+- GeoJsonPoint will store coordinates as [longitude, latitude]
+- Geolocation queries will work correctly
+- Skills will display owner names (user enrichment enabled)
+
+========================================
+IF YOU SEE ERRORS:
+========================================
+
+Error: "IndexOptionsConflict"
+-> You didn't drop the old index. Go back to step 4.
+
+Error: "location array not in correct format"
+-> Old documents still exist. Go back to step 3.
+
+========================================

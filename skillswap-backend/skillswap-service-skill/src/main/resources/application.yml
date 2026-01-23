@@ -19,7 +19,7 @@ user:
 
 # Feature flags
 skill:
-  enrich-with-user-data: false
+  enrich-with-user-data: true
 
 logging:
   level:
