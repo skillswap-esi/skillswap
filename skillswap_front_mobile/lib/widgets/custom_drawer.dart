@@ -6,6 +6,8 @@ import '../pages/settings_page.dart';
 import '../pages/login_page.dart';
 import '../pages/my_skills_page.dart';
 import '../pages/explore_skills_page.dart';
+import '../pages/missions_page.dart';
+import '../pages/notifications_page.dart';
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
@@ -164,6 +166,30 @@ class CustomDrawer extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const ExploreSkillsPage()),
+                    );
+                  },
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.assignment_outlined,
+                  title: 'My Missions',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MissionsPage()),
+                    );
+                  },
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.notifications_outlined,
+                  title: 'Notifications',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const NotificationsPage()),
                     );
                   },
                 ),

@@ -1,7 +1,7 @@
 package com.skillswap.mission.repositories;
 
+import com.skillswap.mission.enums.MissionStatus;
 import com.skillswap.mission.model.Mission;
-import com.skillswap.mission.model.MissionStatus;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,9 +13,13 @@ public interface MissionRepository extends MongoRepository<Mission, UUID> {
     
     List<Mission> findByRequesterId(UUID requesterId);
     
-    List<Mission> findByProviderId(UUID providerId);
+    List<Mission> findByHelperId(UUID helperId);
+    
+    List<Mission> findByRequesterIdAndStatus(UUID requesterId, MissionStatus status);
+    
+    List<Mission> findByHelperIdAndStatus(UUID helperId, MissionStatus status);
+    
+    List<Mission> findBySkillId(UUID skillId);
     
     List<Mission> findByStatus(MissionStatus status);
-    
-    List<Mission> findByRequesterIdOrProviderId(UUID requesterId, UUID providerId);
 }

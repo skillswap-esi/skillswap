@@ -9,6 +9,13 @@
 
 Backend de l'application SkillSwap - Une plateforme d'échange de compétences basée sur une architecture microservices.
 
+## 📚 Essential Documentation
+
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete system architecture and design
+- **[ROADMAP.md](ROADMAP.md)** - Development roadmap and current progress
+- **[MISSION_SERVICE_GUIDE.md](MISSION_SERVICE_GUIDE.md)** - Mission service implementation guide
+- **[KAFKA_INTEGRATION_GUIDE.md](KAFKA_INTEGRATION_GUIDE.md)** - Kafka event-driven integration guide
+
 ## 🏗️ Architecture
 
 Ce projet utilise une architecture **microservices** avec 6 modules Maven :

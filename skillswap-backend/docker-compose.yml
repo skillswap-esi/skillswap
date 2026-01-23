@@ -1,44 +1,22 @@
 version: '3.8'
 
 services:
-  # MongoDB - Base de données principale
-  mongodb:
-    image: mongo:7.0
-    container_name: skillswap-mongodb
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_DATABASE: skillswap
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - skillswap-network
-    restart: unless-stopped
-
-  # Redis - Cache et stockage OTP
-  redis:
-    image: redis:7.2-alpine
-    container_name: skillswap-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - skillswap-network
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-
-  # Kafka (Optionnel - pour les événements)
+  # Zookeeper - Required for Kafka
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: skillswap-zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
     networks:
       - skillswap-network
-    restart: unless-stopped
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
 
+  # Kafka - Event Streaming
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: skillswap-kafka
@@ -46,38 +24,78 @@ services:
       - zookeeper
     ports:
       - "9092:9092"
+      - "9093:9093"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
     networks:
       - skillswap-network
-    restart: unless-stopped
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
 
-  # Mongo Express - Interface web pour MongoDB (Optionnel)
-  mongo-express:
-    image: mongo-express:1.0.2
-    container_name: skillswap-mongo-express
-    depends_on:
-      - mongodb
+  # Redis - OTP Storage
+  redis:
+    image: redis:7-alpine
+    container_name: skillswap-redis
     ports:
-      - "8081:8081"
-    environment:
-      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/
-      ME_CONFIG_BASICAUTH: false
+      - "6379:6379"
+    command: redis-server --appendonly yes
     networks:
       - skillswap-network
-    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-volumes:
-  mongodb_data:
-    driver: local
-  redis_data:
-    driver: local
+  # Kafka UI (Optional - for monitoring)
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: skillswap-kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: skillswap
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9093
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    networks:
+      - skillswap-network
+
+  # Redis Commander (Optional - for monitoring)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: skillswap-redis-commander
+    depends_on:
+      - redis
+    ports:
+      - "8091:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    networks:
+      - skillswap-network
 
 networks:
   skillswap-network:
     driver: bridge
+
+volumes:
+  zookeeper-data:
+  zookeeper-logs:
+  kafka-data:
+  redis-data:

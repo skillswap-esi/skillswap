@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: service-notification
+  data:
+    mongodb:
+      uri: mongodb+srv://skillswap-notification:notificationPassword123@skillswap.qjsfngt.mongodb.net/skillswap-notifications?retryWrites=true&w=majority&appName=skillswap
+      auto-index-creation: true
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
@@ -11,11 +15,25 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "*"
+        spring.json.type.mapping: missionEvent:com.skillswap.notification.events.MissionEvent
+        spring.json.trusted.packages: com.skillswap.notification.events
+      auto-offset-reset: earliest
+  cloud:
+    compatibility-verifier:
+      enabled: false
 
-fcm:
-  credentials-path: classpath:firebase-credentials.json
+# Kafka topics
+kafka:
+  topics:
+    mission-events: mission-events
+
+# Firebase Configuration
+firebase:
+  credentials-path: classpath:firebase-service-account.json
+  enabled: false  # Set to true when FCM is configured
 
 logging:
   level:
     com.skillswap.notification: DEBUG
+    org.springframework.kafka: INFO
+    org.springframework.data.mongodb: INFO

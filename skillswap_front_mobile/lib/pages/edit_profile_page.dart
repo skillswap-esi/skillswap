@@ -48,6 +48,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
         // Update MongoDB via API
         final idToken = await firebaseUser.getIdToken();
+        if (idToken == null) {
+          throw Exception('Failed to get authentication token');
+        }
         await apiService.updateProfile(
           userId: userId,
           fullName: _nameController.text.trim(),
@@ -55,7 +58,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         );
 
         // Refresh user profile
-        await authService.value.syncFromAuthService();
+        await authService.value.refreshUserProfile();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
