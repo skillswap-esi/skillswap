@@ -98,6 +98,8 @@ class SkillEndpoints {
   
   static const String all = base;
   static String byId(String skillId) => '$base/$skillId';
+  static String byUser(String userId) => '$base/user/$userId';
+  static const String near = '$base/near';
   static const String categories = '$base/categories';
   static const String search = '$base/search';
 }

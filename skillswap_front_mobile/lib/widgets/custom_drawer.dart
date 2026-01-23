@@ -4,6 +4,8 @@ import '../core/app_assets.dart';
 import '../auth_service.dart';
 import '../pages/settings_page.dart';
 import '../pages/login_page.dart';
+import '../pages/my_skills_page.dart';
+import '../pages/explore_skills_page.dart';
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
@@ -143,11 +145,26 @@ class CustomDrawer extends StatelessWidget {
                 ),
                 _buildDrawerItem(
                   context,
-                  icon: Icons.swap_horiz,
+                  icon: Icons.lightbulb_outline,
                   title: 'My Skills',
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: Navigate to my skills page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MySkillsPage()),
+                    );
+                  },
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.explore_outlined,
+                  title: 'Explore Skills',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ExploreSkillsPage()),
+                    );
                   },
                 ),
                 _buildDrawerItem(

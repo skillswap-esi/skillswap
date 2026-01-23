@@ -4,6 +4,9 @@ import '../core/app_assets.dart';
 import '../widgets/custom_drawer.dart';
 import '../auth_service.dart';
 import '../providers/user_provider.dart';
+import '../pages/my_skills_page.dart';
+import '../pages/explore_skills_page.dart';
+import '../pages/create_skill_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -271,6 +274,49 @@ class _HomeContentState extends State<HomeContent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
+                  'Quick Actions',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildQuickActionCard(
+                        context,
+                        'Publish Skill',
+                        Icons.add_circle_outline,
+                        AppColors.primary,
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CreateSkillPage(),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildQuickActionCard(
+                        context,
+                        'Explore',
+                        Icons.explore,
+                        AppColors.accent,
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ExploreSkillsPage(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 28),
+                const Text(
                   'Featured Skills',
                   style: TextStyle(
                     fontSize: 20,
@@ -324,6 +370,50 @@ class _HomeContentState extends State<HomeContent> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActionCard(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 32, color: color),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -23,27 +23,51 @@ public class JwtAuthenticationFilter implements GatewayFilter {
     private static final List<String> PUBLIC_PATHS = List.of(
             "/auth/register",
             "/auth/login",
-            "/auth/firebase-login"
+            "/auth/firebase-login",
+            "/skills/near",           // Public: Browse nearby skills
+            "/skills/user/",          // Public: View user's skills
+            "/skills/"                // Public: View skill details (GET only)
     );
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().toString();
+        String method = request.getMethod().name();
 
-        log.debug("Processing request: {}", path);
+        log.debug("Processing request: {} {}", method, path);
 
-        // Skip authentication for public paths
-        if (isPublicPath(path)) {
-            log.debug("Public path, skipping authentication: {}", path);
+        // Skip authentication for public paths (GET only)
+        if (isPublicPath(path) && "GET".equals(method)) {
+            log.debug("Public GET path, skipping authentication: {}", path);
+            
+            // For public paths, try to extract user ID if token is present (optional auth)
+            String authHeader = request.getHeaders().getFirst("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                try {
+                    if (jwtUtil.validateToken(token)) {
+                        String userId = jwtUtil.extractUserId(token);
+                        log.debug("Optional authentication for public path - user: {}", userId);
+                        
+                        ServerHttpRequest modifiedRequest = request.mutate()
+                                .header("X-User-Id", userId)
+                                .build();
+                        return chain.filter(exchange.mutate().request(modifiedRequest).build());
+                    }
+                } catch (Exception e) {
+                    log.debug("Invalid token on public path, proceeding without auth: {}", e.getMessage());
+                }
+            }
+            
             return chain.filter(exchange);
         }
 
-        // Extract token from Authorization header
+        // Extract token from Authorization header (required for protected paths)
         String authHeader = request.getHeaders().getFirst("Authorization");
         
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            log.warn("Missing or invalid Authorization header for path: {}", path);
+            log.warn("Missing or invalid Authorization header for path: {} {}", method, path);
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }
