@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
 
@@ -19,6 +20,7 @@ ValueNotifier<AuthService> authService = ValueNotifier(AuthService());
 /// 5. Backend creates/retrieves user profile and returns it
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
   
   /// The current Firebase user
   User? get currentUser => _firebaseAuth.currentUser;
@@ -35,6 +37,14 @@ class AuthService {
 
   /// Check if user has a backend profile
   bool get hasProfile => _userProfile != null;
+
+  /// Check if user's phone is verified
+  bool get isPhoneVerified => _userProfile?.phoneVerified ?? false;
+
+  /// Set the user profile (used after updates)
+  void setUserProfile(UserModel profile) {
+    _userProfile = profile;
+  }
 
   /// Get the current Firebase ID token
   Future<String?> getIdToken({bool forceRefresh = false}) async {
@@ -82,6 +92,65 @@ class AuthService {
     }
 
     return credential;
+  }
+
+  /// Sign in with Google
+  /// After Google auth, syncs with backend
+  Future<UserCredential?> signInWithGoogle() async {
+    try {
+      // Trigger the authentication flow
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      
+      if (googleUser == null) {
+        // User cancelled the sign-in
+        return null;
+      }
+
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the Google credential
+      final userCredential = await _firebaseAuth.signInWithCredential(credential);
+
+      // Get Firebase ID token
+      final idToken = await userCredential.user?.getIdToken();
+      if (idToken == null) {
+        throw Exception('Failed to get Firebase ID token');
+      }
+
+      // Login/register to backend
+      final email = userCredential.user?.email ?? '';
+      final displayName = userCredential.user?.displayName ?? '';
+      
+      try {
+        // Try to login first
+        _userProfile = await apiService.login(
+          email: email,
+          idToken: idToken,
+        );
+        debugPrint('Google user logged in: ${_userProfile?.userId}');
+      } catch (e) {
+        // If login fails, try to register
+        debugPrint('Login failed, trying to register: $e');
+        _userProfile = await apiService.register(
+          email: email,
+          fullName: displayName,
+          idToken: idToken,
+        );
+        debugPrint('Google user registered: ${_userProfile?.userId}');
+      }
+
+      return userCredential;
+    } catch (e) {
+      debugPrint('Error signing in with Google: $e');
+      rethrow;
+    }
   }
 
   /// Create a new account with email and password

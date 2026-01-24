@@ -3,12 +3,17 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'core/app_colors.dart';
 import 'pages/welcome_page.dart';
+import 'services/fcm_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // Initialize FCM for push notifications
+  await fcmService.initialize();
+  
   runApp(const MyApp());
 }
 

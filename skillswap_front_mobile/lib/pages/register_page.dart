@@ -24,6 +24,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   @override
   void dispose() {
@@ -131,6 +132,34 @@ class _RegisterPageState extends State<RegisterPage> {
             _isLoading = false;
           });
         }
+      }
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isGoogleLoading = true;
+    });
+
+    try {
+      final credential = await authService.value.signInWithGoogle();
+      
+      if (credential != null && mounted) {
+        _showSuccess('Signed in with Google!');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showError('Google sign-in failed: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGoogleLoading = false;
+        });
       }
     }
   }
@@ -365,6 +394,62 @@ class _RegisterPageState extends State<RegisterPage> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Divider with "OR"
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'OR',
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                // Google Sign-In Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton.icon(
+                    onPressed: _isGoogleLoading ? null : _handleGoogleSignIn,
+                    icon: _isGoogleLoading
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Image.network(
+                            'https://www.google.com/favicon.ico',
+                            height: 24,
+                            width: 24,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(Icons.g_mobiledata, size: 24),
+                          ),
+                    label: Text(
+                      _isGoogleLoading ? 'Signing up...' : 'Continue with Google',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.black87,
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),

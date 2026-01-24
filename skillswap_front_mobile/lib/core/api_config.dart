@@ -18,8 +18,15 @@ class ApiConfig {
   static const String _webUrl = 'http://localhost:8080'; // Web/iOS → API Gateway
   static const String _prodBaseUrl = 'https://api.skillswap.com'; // Production
   
+  // ⚠️ UPDATE THIS with your machine's IP when testing on real device
+  // Find your IP: Windows → ipconfig | Linux/Mac → ifconfig
+  static const String _physicalDeviceUrl = 'http://10.23.99.211:8080'; // Your machine's IP
+  
   // Current environment
   static const bool isProduction = false;
+  
+  // Set to true when testing on a real physical Android device
+  static const bool usePhysicalDevice = true;
   
   /// Get the appropriate base URL based on platform and environment
   static String get baseUrl {
@@ -35,8 +42,8 @@ class ApiConfig {
       try {
         // Running on mobile/desktop
         if (Platform.isAndroid) {
-          // Android emulator needs special IP
-          return _androidEmulatorUrl;
+          // Use physical device URL if flag is set, otherwise use emulator URL
+          return usePhysicalDevice ? _physicalDeviceUrl : _androidEmulatorUrl;
         } else {
           // iOS simulator, macOS, Windows, Linux use localhost
           return _webUrl;

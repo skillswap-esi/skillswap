@@ -11,7 +11,7 @@ plugins {
 android {
     namespace = "com.example.skillswap_front_mobile"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // ndkVersion = flutter.ndkVersion // Commented out to avoid NDK download issues
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -27,7 +27,7 @@ android {
         applicationId = "com.example.skillswap_front_mobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = flutter.minSdkVersion // Required for Firebase Auth
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
