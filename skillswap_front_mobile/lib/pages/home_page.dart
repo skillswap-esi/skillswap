@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../core/app_assets.dart';
 import '../widgets/custom_drawer.dart';
+import '../widgets/notifications_panel.dart';
 import '../auth_service.dart';
 import '../providers/user_provider.dart';
 import '../pages/my_skills_page.dart';
@@ -17,6 +18,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
+  bool _showNotifications = false;
 
   final List<Widget> _pages = [
     const HomeContent(),
@@ -30,101 +32,136 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _toggleNotifications() {
+    setState(() {
+      _showNotifications = !_showNotifications;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        toolbarHeight: kToolbarHeight + MediaQuery.of(context).padding.top,
-        title: Padding(
-          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                padding: const EdgeInsets.all(6),
-                child: ClipOval(
-                  child: Image.asset(
-                    AppAssets.logo,
-                    fit: BoxFit.cover,
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            toolbarHeight: kToolbarHeight + MediaQuery.of(context).padding.top,
+            title: Padding(
+              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(6),
+                    child: ClipOval(
+                      child: Image.asset(
+                        AppAssets.logo,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'SkillSwap',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              const Text(
-                'SkillSwap',
-                style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            actions: [
+              Padding(
+                padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+                child: Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications_outlined),
+                      onPressed: _toggleNotifications,
+                    ),
+                    // Notification badge
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 8,
+                          minHeight: 8,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
-          ),
-        ),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-            child: IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () {},
+            leadingWidth: 56 + MediaQuery.of(context).padding.top * 0,
+            leading: Padding(
+              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+              child: Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(Icons.menu),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              ),
             ),
           ),
-        ],
-        leadingWidth: 56 + MediaQuery.of(context).padding.top * 0,
-        leading: Padding(
-          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-          child: Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () => Scaffold.of(context).openDrawer(),
+          drawer: const CustomDrawer(),
+          body: _pages[_selectedIndex],
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+            ),
+            child: BottomNavigationBar(
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home_outlined),
+                  activeIcon: Icon(Icons.home),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.explore_outlined),
+                  activeIcon: Icon(Icons.explore),
+                  label: 'Explore',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person_outlined),
+                  activeIcon: Icon(Icons.person),
+                  label: 'Profile',
+                ),
+              ],
+              currentIndex: _selectedIndex,
+              selectedItemColor: AppColors.primary,
+              unselectedItemColor: AppColors.textSecondary,
+              backgroundColor: Colors.white,
+              elevation: 0,
+              onTap: _onItemTapped,
             ),
           ),
         ),
-      ),
-      drawer: const CustomDrawer(),
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.explore_outlined),
-              activeIcon: Icon(Icons.explore),
-              label: 'Explore',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outlined),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
-          currentIndex: _selectedIndex,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.textSecondary,
-          backgroundColor: Colors.white,
-          elevation: 0,
-          onTap: _onItemTapped,
-        ),
-      ),
+        // Notifications Panel Overlay
+        if (_showNotifications)
+          NotificationsPanel(
+            onClose: _toggleNotifications,
+          ),
+      ],
     );
   }
 }
@@ -137,6 +174,8 @@ class HomeContent extends StatefulWidget {
 }
 
 class _HomeContentState extends State<HomeContent> {
+  bool _dismissedVerifyBanner = false;
+
   @override
   void initState() {
     super.initState();
@@ -158,6 +197,21 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   int get _creditsBalance => authService.value.userProfile?.creditsBalance ?? 0;
+
+  bool get _showPhoneVerifyBanner {
+    if (_dismissedVerifyBanner) return false;
+    return !authService.value.isPhoneVerified;
+  }
+
+  void _showPhoneVerificationDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => const PhoneVerificationDialog(),
+    ).then((_) {
+      // Refresh state after dialog closes
+      setState(() {});
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -268,6 +322,16 @@ class _HomeContentState extends State<HomeContent> {
               ],
             ),
           ),
+          // Phone Verification Banner
+          if (_showPhoneVerifyBanner)
+            PhoneVerificationBanner(
+              onVerify: _showPhoneVerificationDialog,
+              onDismiss: () {
+                setState(() {
+                  _dismissedVerifyBanner = true;
+                });
+              },
+            ),
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
