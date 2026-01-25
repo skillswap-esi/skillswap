@@ -11,13 +11,13 @@ import java.util.UUID;
 @Repository
 public interface MissionRepository extends MongoRepository<Mission, UUID> {
     
-    List<Mission> findByRequesterId(UUID requesterId);
+    List<Mission> findByRequesterId(String requesterId);
     
-    List<Mission> findByHelperId(UUID helperId);
+    List<Mission> findByProviderId(String providerId);
     
-    List<Mission> findByRequesterIdAndStatus(UUID requesterId, MissionStatus status);
+    List<Mission> findByRequesterIdAndStatus(String requesterId, MissionStatus status);
     
-    List<Mission> findByHelperIdAndStatus(UUID helperId, MissionStatus status);
+    List<Mission> findByProviderIdAndStatus(String providerId, MissionStatus status);
     
     List<Mission> findBySkillId(UUID skillId);
     

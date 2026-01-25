@@ -26,6 +26,23 @@ public class GatewayConfig {
                                 .removeRequestHeader("Cookie"))        // Remove session cookies
                         .uri("http://localhost:8081"))
                 
+                // User Service - Admin Login (Public - NO JWT filter)
+                // Backoffice needs to login to GET a JWT token
+                .route("user-service-admin-login", r -> r
+                        .path("/api/admin/login")
+                        .filters(f -> f
+                                .stripPrefix(1)
+                                .removeRequestHeader("Cookie"))
+                        .uri("http://localhost:8081"))
+                
+                // User Service - Admin Routes (Backoffice - NO JWT for now)
+                // These routes are for backoffice management
+                .route("user-service-admin", r -> r
+                        .path("/api/admin/**")
+                        .filters(f -> f
+                                .stripPrefix(1))
+                        .uri("http://localhost:8081"))
+                
                 // User Service - Protected (requires JWT)
                 .route("user-service", r -> r
                         .path("/api/users/**")
@@ -42,7 +59,16 @@ public class GatewayConfig {
                                 .filter(jwtAuthenticationFilter))
                         .uri("http://localhost:8082"))
                 
+                // Mission Service - Partner Places (Backoffice - NO JWT for management)
+                // stripPrefix(1) removes /api → missions/partner-places/...
+                .route("mission-service-partner-places", r -> r
+                        .path("/api/missions/partner-places/**")
+                        .filters(f -> f
+                                .stripPrefix(1))
+                        .uri("http://localhost:8083"))
+                
                 // Mission Service - Protected (requires JWT)
+                // stripPrefix(1) removes /api → missions/...
                 .route("mission-service", r -> r
                         .path("/api/missions/**")
                         .filters(f -> f

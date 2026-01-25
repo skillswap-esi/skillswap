@@ -162,4 +162,32 @@ public class UserController {
         userService.transferCredits(fromUserId, toUserId, amount, missionId);
         return ResponseEntity.ok(Map.of("message", "Credits transferred successfully"));
     }
+    
+    /**
+     * POST /users/{userId}/credits/debit
+     * Débite des crédits d'un utilisateur (endpoint interne pour Mission Service)
+     * Alias pour /credits/deduct
+     */
+    @PostMapping("/{userId}/credits/debit")
+    public ResponseEntity<Void> debitCredits(
+            @PathVariable UUID userId,
+            @RequestParam int amount) {
+        log.info("POST /users/{}/credits/debit - amount: {}", userId, amount);
+        userService.deductCredits(userId, amount, "Mission payment");
+        return ResponseEntity.ok().build();
+    }
+    
+    /**
+     * POST /users/{userId}/credits/credit
+     * Crédite des crédits à un utilisateur (endpoint interne pour Mission Service)
+     * Alias pour /credits/add
+     */
+    @PostMapping("/{userId}/credits/credit")
+    public ResponseEntity<Void> creditCredits(
+            @PathVariable UUID userId,
+            @RequestParam int amount) {
+        log.info("POST /users/{}/credits/credit - amount: {}", userId, amount);
+        userService.addCredits(userId, amount, "Mission refund/payment");
+        return ResponseEntity.ok().build();
+    }
 }

@@ -81,7 +81,7 @@ class MissionModel {
   final double? latitude;
   final double? longitude;
   final String? location;
-  final DateTime createdAt;
+  final DateTime? createdAt;
   final DateTime? updatedAt;
   final DateTime? acceptedAt;
   final DateTime? startedAt;
@@ -111,7 +111,7 @@ class MissionModel {
     this.latitude,
     this.longitude,
     this.location,
-    required this.createdAt,
+    this.createdAt,
     this.updatedAt,
     this.acceptedAt,
     this.startedAt,
@@ -143,7 +143,7 @@ class MissionModel {
       latitude: json['latitude']?.toDouble(),
       longitude: json['longitude']?.toDouble(),
       location: json['location'],
-      createdAt: DateTime.parse(json['createdAt']),
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
       acceptedAt: json['acceptedAt'] != null ? DateTime.parse(json['acceptedAt']) : null,
       startedAt: json['startedAt'] != null ? DateTime.parse(json['startedAt']) : null,
@@ -176,7 +176,7 @@ class MissionModel {
       'latitude': latitude,
       'longitude': longitude,
       'location': location,
-      'createdAt': createdAt.toIso8601String(),
+      'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
       'acceptedAt': acceptedAt?.toIso8601String(),
       'startedAt': startedAt?.toIso8601String(),

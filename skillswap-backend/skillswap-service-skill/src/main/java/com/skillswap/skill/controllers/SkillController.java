@@ -25,7 +25,7 @@ public class SkillController {
     @PostMapping
     public ResponseEntity<SkillResponse> createSkill(
             @Valid @RequestBody CreateSkillRequest request,
-            @RequestHeader("X-User-Id") UUID userId) {
+            @RequestHeader("X-User-Id") String userId) {
         log.info("POST /skills - Creating skill for user: {}", userId);
         SkillResponse response = skillService.createSkill(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -44,7 +44,7 @@ public class SkillController {
     }
     
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<SkillResponse>> getSkillsByUser(@PathVariable UUID userId) {
+    public ResponseEntity<List<SkillResponse>> getSkillsByUser(@PathVariable String userId) {
         log.info("GET /skills/user/{} - Getting skills for user", userId);
         List<SkillResponse> skills = skillService.getSkillsByUser(userId);
         return ResponseEntity.ok(skills);
@@ -53,15 +53,21 @@ public class SkillController {
     @GetMapping("/{skillId}")
     public ResponseEntity<SkillResponse> getSkillById(@PathVariable UUID skillId) {
         log.info("GET /skills/{} - Getting skill by ID", skillId);
-        SkillResponse skill = skillService.getSkillById(skillId);
-        return ResponseEntity.ok(skill);
+        try {
+            SkillResponse skill = skillService.getSkillById(skillId);
+            log.info("Found skill: {}", skill.getTitle());
+            return ResponseEntity.ok(skill);
+        } catch (Exception e) {
+            log.error("Error getting skill {}: {}", skillId, e.getMessage());
+            throw e;
+        }
     }
     
     @PutMapping("/{skillId}")
     public ResponseEntity<SkillResponse> updateSkill(
             @PathVariable UUID skillId,
             @Valid @RequestBody UpdateSkillRequest request,
-            @RequestHeader("X-User-Id") UUID userId) {
+            @RequestHeader("X-User-Id") String userId) {
         log.info("PUT /skills/{} - Updating skill by user: {}", skillId, userId);
         SkillResponse response = skillService.updateSkill(skillId, request, userId);
         return ResponseEntity.ok(response);
@@ -70,7 +76,7 @@ public class SkillController {
     @DeleteMapping("/{skillId}")
     public ResponseEntity<Void> deleteSkill(
             @PathVariable UUID skillId,
-            @RequestHeader("X-User-Id") UUID userId) {
+            @RequestHeader("X-User-Id") String userId) {
         log.info("DELETE /skills/{} - Deleting skill by user: {}", skillId, userId);
         skillService.deleteSkill(skillId, userId);
         return ResponseEntity.noContent().build();

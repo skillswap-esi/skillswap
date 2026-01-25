@@ -16,14 +16,19 @@ class MissionService {
         'Accept': 'application/json',
       };
 
-  Map<String, String> _authHeaders(String authToken) => {
+  Map<String, String> _authHeaders(String authToken, String userId) => {
         ..._jsonHeaders,
         'Authorization': 'Bearer $authToken',
+        'X-User-Id': userId,  // Required by backend
       };
 
-  String get _baseUrl => '${ApiConfig.baseUrl}/missions';
+  // Use API Gateway base URL with /api/missions prefix
+  String get _baseUrl => '${ApiConfig.baseUrl}/api/missions';
 
   dynamic _handleResponse(http.Response response) {
+    print('[MissionService] Response status: ${response.statusCode}');
+    print('[MissionService] Response body: ${response.body}');
+    
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return null;
       return json.decode(response.body);
@@ -45,17 +50,20 @@ class MissionService {
   Future<T> _safeApiCall<T>(Future<T> Function() apiCall) async {
     try {
       return await apiCall();
-    } on SocketException {
+    } on SocketException catch (e) {
+      print('[MissionService] SocketException: $e');
       throw MissionServiceException(
         statusCode: 0,
         message: 'No internet connection',
       );
     } on HttpException catch (e) {
+      print('[MissionService] HttpException: $e');
       throw MissionServiceException(
         statusCode: 0,
         message: 'HTTP Error: ${e.message}',
       );
-    } on FormatException {
+    } on FormatException catch (e) {
+      print('[MissionService] FormatException: $e');
       throw MissionServiceException(
         statusCode: 0,
         message: 'Invalid response format',
@@ -67,12 +75,21 @@ class MissionService {
   Future<MissionModel> createMission({
     required CreateMissionRequest request,
     required String authToken,
+    required String userId,
   }) async {
     return _safeApiCall(() async {
+      final url = _baseUrl;
+      final body = json.encode(request.toJson());
+      
+      print('[MissionService] === CREATE MISSION ===');
+      print('[MissionService] URL: $url');
+      print('[MissionService] User ID: $userId');
+      print('[MissionService] Request body: $body');
+      
       final response = await _client.post(
-        Uri.parse(_baseUrl),
-        headers: _authHeaders(authToken),
-        body: json.encode(request.toJson()),
+        Uri.parse(url),
+        headers: _authHeaders(authToken, userId),
+        body: body,
       );
 
       final data = _handleResponse(response);
@@ -81,11 +98,13 @@ class MissionService {
   }
 
   // Get Mission by ID
-  Future<MissionModel> getMissionById(String missionId, String authToken) async {
+  Future<MissionModel> getMissionById(String missionId, String authToken, String userId) async {
     return _safeApiCall(() async {
+      print('[MissionService] GET mission: $missionId');
+      
       final response = await _client.get(
         Uri.parse('$_baseUrl/$missionId'),
-        headers: _authHeaders(authToken),
+        headers: _authHeaders(authToken, userId),
       );
 
       final data = _handleResponse(response);
@@ -108,9 +127,11 @@ class MissionService {
       final uri = Uri.parse('$_baseUrl/user/$userId')
           .replace(queryParameters: queryParams.isEmpty ? null : queryParams);
 
+      print('[MissionService] GET user missions: $uri');
+      
       final response = await _client.get(
         uri,
-        headers: _authHeaders(authToken),
+        headers: _authHeaders(authToken, userId),
       );
 
       final data = _handleResponse(response) as List;
@@ -119,11 +140,13 @@ class MissionService {
   }
 
   // Accept Mission
-  Future<MissionModel> acceptMission(String missionId, String authToken) async {
+  Future<MissionModel> acceptMission(String missionId, String authToken, String userId) async {
     return _safeApiCall(() async {
+      print('[MissionService] ACCEPT mission: $missionId');
+      
       final response = await _client.post(
         Uri.parse('$_baseUrl/$missionId/accept'),
-        headers: _authHeaders(authToken),
+        headers: _authHeaders(authToken, userId),
       );
 
       final data = _handleResponse(response);
@@ -136,11 +159,14 @@ class MissionService {
     required String missionId,
     required String reason,
     required String authToken,
+    required String userId,
   }) async {
     return _safeApiCall(() async {
+      print('[MissionService] REJECT mission: $missionId');
+      
       final response = await _client.post(
         Uri.parse('$_baseUrl/$missionId/reject'),
-        headers: _authHeaders(authToken),
+        headers: _authHeaders(authToken, userId),
         body: json.encode({'reason': reason}),
       );
 
@@ -153,11 +179,14 @@ class MissionService {
     required String missionId,
     required String reason,
     required String authToken,
+    required String userId,
   }) async {
     return _safeApiCall(() async {
+      print('[MissionService] CANCEL mission: $missionId');
+      
       final response = await _client.post(
         Uri.parse('$_baseUrl/$missionId/cancel'),
-        headers: _authHeaders(authToken),
+        headers: _authHeaders(authToken, userId),
         body: json.encode({'reason': reason}),
       );
 
@@ -166,11 +195,13 @@ class MissionService {
   }
 
   // Start Mission
-  Future<MissionModel> startMission(String missionId, String authToken) async {
+  Future<MissionModel> startMission(String missionId, String authToken, String userId) async {
     return _safeApiCall(() async {
+      print('[MissionService] START mission: $missionId');
+      
       final response = await _client.post(
         Uri.parse('$_baseUrl/$missionId/start'),
-        headers: _authHeaders(authToken),
+        headers: _authHeaders(authToken, userId),
       );
 
       final data = _handleResponse(response);
@@ -179,11 +210,13 @@ class MissionService {
   }
 
   // Generate OTP
-  Future<Map<String, dynamic>> generateOtp(String missionId, String authToken) async {
+  Future<Map<String, dynamic>> generateOtp(String missionId, String authToken, String userId) async {
     return _safeApiCall(() async {
+      print('[MissionService] GENERATE OTP for mission: $missionId');
+      
       final response = await _client.post(
         Uri.parse('$_baseUrl/$missionId/generate-otp'),
-        headers: _authHeaders(authToken),
+        headers: _authHeaders(authToken, userId),
       );
 
       return _handleResponse(response);
@@ -195,11 +228,14 @@ class MissionService {
     required String missionId,
     required String otpCode,
     required String authToken,
+    required String userId,
   }) async {
     return _safeApiCall(() async {
+      print('[MissionService] VALIDATE OTP for mission: $missionId');
+      
       final response = await _client.post(
         Uri.parse('$_baseUrl/$missionId/validate-otp'),
-        headers: _authHeaders(authToken),
+        headers: _authHeaders(authToken, userId),
         body: json.encode({'otpCode': otpCode}),
       );
 

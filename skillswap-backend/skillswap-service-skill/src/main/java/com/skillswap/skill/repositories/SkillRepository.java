@@ -12,7 +12,7 @@ import java.util.UUID;
 @Repository
 public interface SkillRepository extends MongoRepository<Skill, UUID> {
     
-    List<Skill> findByOwnerId(UUID ownerId);
+    List<Skill> findByOwnerId(String ownerId);
     
     List<Skill> findByGeoPointNear(Point point, Distance distance);
     

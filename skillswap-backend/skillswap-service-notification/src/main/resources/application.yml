@@ -4,10 +4,6 @@ server:
 spring:
   application:
     name: service-notification
-  data:
-    mongodb:
-      uri: mongodb+srv://skillswap-notification:notificationPassword123@skillswap.qjsfngt.mongodb.net/skillswap-notifications?retryWrites=true&w=majority&appName=skillswap
-      auto-index-creation: true
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
@@ -30,10 +26,9 @@ kafka:
 # Firebase Configuration
 firebase:
   credentials-path: classpath:firebase-service-account.json
-  enabled: false  # Set to true when FCM is configured
+  enabled: false  # Set to true when you configure real Firebase credentials
 
 logging:
   level:
     com.skillswap.notification: DEBUG
     org.springframework.kafka: INFO
-    org.springframework.data.mongodb: INFO

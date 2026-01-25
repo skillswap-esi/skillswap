@@ -35,7 +35,7 @@ public class MissionService {
     private boolean enrichWithUserData;
     
     @Transactional
-    public MissionResponse createMission(CreateMissionRequest request, UUID requesterId) {
+    public MissionResponse createMission(CreateMissionRequest request, String requesterId) {
         log.info("Creating mission for requester: {}", requesterId);
         
         // 1. Verify skill exists and is active
@@ -53,10 +53,10 @@ public class MissionService {
         UserDto requester;
         try {
             requester = userClient.getUserById(requesterId);
-            if (requester.getCredits() < request.getCreditCost()) {
+            if (requester.getCreditsBalance() < request.getCreditCost()) {
                 throw new InsufficientCreditsException(
                     String.format("Insufficient credits. Required: %d, Available: %d", 
-                        request.getCreditCost(), requester.getCredits())
+                        request.getCreditCost(), requester.getCreditsBalance())
                 );
             }
         } catch (FeignException.NotFound e) {
@@ -83,14 +83,11 @@ public class MissionService {
         mission.setCreditCost(request.getCreditCost());
         mission.setStatus(MissionStatus.PENDING);
         
-        // Copy location from skill
-        mission.setGeoPoint(new GeoJsonPoint(skill.getLongitude(), skill.getLatitude()));
-        
         Mission savedMission = missionRepository.save(mission);
         log.info("Mission created successfully with ID: {}", savedMission.getMissionId());
         
-        // 5. Publish event
-        eventPublisher.publishMissionCreated(savedMission);
+        // 5. Publish event with skill owner ID
+        eventPublisher.publishMissionCreated(savedMission, skill.getOwnerId().toString());
         
         return mapToResponse(savedMission, skill, enrichWithUserData);
     }
@@ -110,7 +107,7 @@ public class MissionService {
         return mapToResponse(mission, skill, enrichWithUserData);
     }
     
-    public List<MissionResponse> getUserMissions(UUID userId, String role, MissionStatus status) {
+    public List<MissionResponse> getUserMissions(String userId, String role, MissionStatus status) {
         log.info("Getting missions for user: {}, role: {}, status: {}", userId, role, status);
         
         List<Mission> missions;
@@ -121,14 +118,14 @@ public class MissionService {
                 : missionRepository.findByRequesterId(userId);
         } else if (role != null && role.equalsIgnoreCase("HELPER")) {
             missions = status != null
-                ? missionRepository.findByHelperIdAndStatus(userId, status)
-                : missionRepository.findByHelperId(userId);
+                ? missionRepository.findByProviderIdAndStatus(userId, status)
+                : missionRepository.findByProviderId(userId);
         } else {
-            // Get all missions where user is either requester or helper
+            // Get all missions where user is either requester or provider
             List<Mission> asRequester = missionRepository.findByRequesterId(userId);
-            List<Mission> asHelper = missionRepository.findByHelperId(userId);
+            List<Mission> asProvider = missionRepository.findByProviderId(userId);
             missions = asRequester;
-            missions.addAll(asHelper);
+            missions.addAll(asProvider);
             
             if (status != null) {
                 missions = missions.stream()
@@ -151,8 +148,8 @@ public class MissionService {
     }
     
     @Transactional
-    public MissionResponse acceptMission(UUID missionId, UUID helperId) {
-        log.info("Helper {} accepting mission: {}", helperId, missionId);
+    public MissionResponse acceptMission(UUID missionId, String providerId) {
+        log.info("Provider {} accepting mission: {}", providerId, missionId);
         
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new MissionNotFoundException("Mission not found with ID: " + missionId));
@@ -162,11 +159,11 @@ public class MissionService {
             throw new InvalidMissionStatusException("Mission is not in PENDING status");
         }
         
-        // Verify helper is the skill owner
+        // Verify provider is the skill owner
         SkillDto skill;
         try {
             skill = skillClient.getSkillById(mission.getSkillId());
-            if (!skill.getOwnerId().equals(helperId)) {
+            if (!skill.getOwnerId().equals(providerId)) {
                 throw new UnauthorizedMissionAccessException("Only the skill owner can accept this mission");
             }
         } catch (FeignException.NotFound e) {
@@ -174,7 +171,7 @@ public class MissionService {
         }
         
         // Update mission
-        mission.setHelperId(helperId);
+        mission.setProviderId(providerId);
         mission.setStatus(MissionStatus.ACCEPTED);
         mission.setAcceptedAt(new Date());
         
@@ -188,8 +185,8 @@ public class MissionService {
     }
     
     @Transactional
-    public void rejectMission(UUID missionId, UUID helperId, String reason) {
-        log.info("Helper {} rejecting mission: {}", helperId, missionId);
+    public void rejectMission(UUID missionId, String providerId, String reason) {
+        log.info("Provider {} rejecting mission: {}", providerId, missionId);
         
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new MissionNotFoundException("Mission not found with ID: " + missionId));
@@ -199,10 +196,10 @@ public class MissionService {
             throw new InvalidMissionStatusException("Mission is not in PENDING status");
         }
         
-        // Verify helper is the skill owner
+        // Verify provider is the skill owner
         try {
             SkillDto skill = skillClient.getSkillById(mission.getSkillId());
-            if (!skill.getOwnerId().equals(helperId)) {
+            if (!skill.getOwnerId().equals(providerId)) {
                 throw new UnauthorizedMissionAccessException("Only the skill owner can reject this mission");
             }
         } catch (FeignException.NotFound e) {
@@ -228,16 +225,16 @@ public class MissionService {
     }
     
     @Transactional
-    public void cancelMission(UUID missionId, UUID userId, String reason) {
+    public void cancelMission(UUID missionId, String userId, String reason) {
         log.info("User {} cancelling mission: {}", userId, missionId);
         
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new MissionNotFoundException("Mission not found with ID: " + missionId));
         
-        // Verify user is requester or helper
+        // Verify user is requester or provider
         if (!mission.getRequesterId().equals(userId) && 
-            (mission.getHelperId() == null || !mission.getHelperId().equals(userId))) {
-            throw new UnauthorizedMissionAccessException("Only requester or helper can cancel this mission");
+            (mission.getProviderId() == null || !mission.getProviderId().equals(userId))) {
+            throw new UnauthorizedMissionAccessException("Only requester or provider can cancel this mission");
         }
         
         // Cannot cancel completed missions
@@ -270,15 +267,15 @@ public class MissionService {
     }
     
     @Transactional
-    public MissionResponse startMission(UUID missionId, UUID userId) {
+    public MissionResponse startMission(UUID missionId, String userId) {
         log.info("User {} starting mission: {}", userId, missionId);
         
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new MissionNotFoundException("Mission not found with ID: " + missionId));
         
-        // Verify user is requester or helper
-        if (!mission.getRequesterId().equals(userId) && !mission.getHelperId().equals(userId)) {
-            throw new UnauthorizedMissionAccessException("Only requester or helper can start this mission");
+        // Verify user is requester or provider
+        if (!mission.getRequesterId().equals(userId) && !mission.getProviderId().equals(userId)) {
+            throw new UnauthorizedMissionAccessException("Only requester or provider can start this mission");
         }
         
         // Verify mission status
@@ -306,15 +303,15 @@ public class MissionService {
         return mapToResponse(updated, skill, enrichWithUserData);
     }
     
-    public OtpResponse generateOtp(UUID missionId, UUID helperId) {
-        log.info("Helper {} generating OTP for mission: {}", helperId, missionId);
+    public OtpResponse generateOtp(UUID missionId, String providerId) {
+        log.info("Provider {} generating OTP for mission: {}", providerId, missionId);
         
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new MissionNotFoundException("Mission not found with ID: " + missionId));
         
-        // Verify user is helper
-        if (!mission.getHelperId().equals(helperId)) {
-            throw new UnauthorizedMissionAccessException("Only the helper can generate OTP");
+        // Verify user is provider
+        if (!mission.getProviderId().equals(providerId)) {
+            throw new UnauthorizedMissionAccessException("Only the provider can generate OTP");
         }
         
         // Verify mission status
@@ -331,7 +328,7 @@ public class MissionService {
     }
     
     @Transactional
-    public MissionResponse validateOtp(UUID missionId, UUID requesterId, String otpCode) {
+    public MissionResponse validateOtp(UUID missionId, String requesterId, String otpCode) {
         log.info("Requester {} validating OTP for mission: {}", requesterId, missionId);
         
         Mission mission = missionRepository.findById(missionId)
@@ -352,11 +349,11 @@ public class MissionService {
             throw new InvalidOtpException("Invalid or expired OTP code");
         }
         
-        // Credit helper
+        // Credit provider
         try {
-            userClient.creditCredits(mission.getHelperId(), mission.getCreditCost());
+            userClient.creditCredits(mission.getProviderId(), mission.getCreditCost());
         } catch (Exception e) {
-            log.error("Failed to credit helper: {}", mission.getHelperId(), e);
+            log.error("Failed to credit provider: {}", mission.getProviderId(), e);
             throw new RuntimeException("Failed to process credit transaction");
         }
         
@@ -385,7 +382,7 @@ public class MissionService {
                 .missionId(mission.getMissionId())
                 .skillId(mission.getSkillId())
                 .requesterId(mission.getRequesterId())
-                .helperId(mission.getHelperId())
+                .providerId(mission.getProviderId())
                 .title(mission.getTitle())
                 .description(mission.getDescription())
                 .status(mission.getStatus())
@@ -407,9 +404,6 @@ public class MissionService {
                    .skillCategory(skill.getCategory())
                    .latitude(skill.getLatitude())
                    .longitude(skill.getLongitude());
-        } else if (mission.getGeoPoint() != null) {
-            builder.latitude(mission.getGeoPoint().getY())
-                   .longitude(mission.getGeoPoint().getX());
         }
         
         // Enrich with user data
@@ -419,11 +413,11 @@ public class MissionService {
                 builder.requesterName(requester.getFullName())
                        .requesterAvatar(requester.getAvatar());
                 
-                if (mission.getHelperId() != null) {
-                    UserDto helper = userClient.getUserById(mission.getHelperId());
-                    builder.helperName(helper.getFullName())
-                           .helperAvatar(helper.getAvatar())
-                           .helperScore(helper.getHelperScore());
+                if (mission.getProviderId() != null) {
+                    UserDto provider = userClient.getUserById(mission.getProviderId());
+                    builder.providerName(provider.getFullName())
+                           .providerAvatar(provider.getAvatar())
+                           .providerScore((int) provider.getHelperScore());
                 }
             } catch (Exception e) {
                 log.warn("Failed to enrich mission with user data: {}", mission.getMissionId());

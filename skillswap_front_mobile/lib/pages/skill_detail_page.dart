@@ -6,6 +6,7 @@ import '../services/skill_service.dart';
 import '../services/mission_service.dart';
 import '../auth_service.dart';
 import 'package:intl/intl.dart';
+import 'create_mission_page.dart';
 
 class SkillDetailPage extends StatefulWidget {
   final SkillModel skill;
@@ -535,164 +536,21 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
       return;
     }
 
-    final titleController = TextEditingController(text: _skill.title);
-    final descriptionController = TextEditingController();
-    DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
-    TimeOfDay selectedTime = const TimeOfDay(hour: 14, minute: 0);
-    int duration = 60;
-    int creditCost = 10;
-
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Request Mission'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Mission Title',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    border: OutlineInputBorder(),
-                    hintText: 'What do you need help with?',
-                  ),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.calendar_today),
-                  title: const Text('Date'),
-                  subtitle: Text(DateFormat('MMM dd, yyyy').format(selectedDate)),
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                    );
-                    if (date != null) {
-                      setState(() => selectedDate = date);
-                    }
-                  },
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.access_time),
-                  title: const Text('Time'),
-                  subtitle: Text(selectedTime.format(context)),
-                  onTap: () async {
-                    final time = await showTimePicker(
-                      context: context,
-                      initialTime: selectedTime,
-                    );
-                    if (time != null) {
-                      setState(() => selectedTime = time);
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                Text('Duration: $duration minutes'),
-                Slider(
-                  value: duration.toDouble(),
-                  min: 30,
-                  max: 240,
-                  divisions: 7,
-                  label: '$duration min',
-                  onChanged: (value) {
-                    setState(() => duration = value.toInt());
-                  },
-                ),
-                const SizedBox(height: 16),
-                Text('Credit Cost: $creditCost credits'),
-                Slider(
-                  value: creditCost.toDouble(),
-                  min: 5,
-                  max: 50,
-                  divisions: 9,
-                  label: '$creditCost',
-                  onChanged: (value) {
-                    setState(() => creditCost = value.toInt());
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Request'),
-            ),
-          ],
-        ),
+    // Navigate to create mission page with chat and map picker
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateMissionPage(skill: _skill),
       ),
     );
 
-    if (result != true) return;
-
-    // Create mission
-    setState(() => _isLoading = true);
-
-    try {
-      final idToken = await firebaseUser.getIdToken();
-      
-      final scheduledDateTime = DateTime(
-        selectedDate.year,
-        selectedDate.month,
-        selectedDate.day,
-        selectedTime.hour,
-        selectedTime.minute,
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mission requested successfully!'),
+          backgroundColor: Colors.green,
+        ),
       );
-
-      final request = CreateMissionRequest(
-        skillId: _skill.skillId!,
-        title: titleController.text.trim(),
-        description: descriptionController.text.trim(),
-        scheduledDate: scheduledDateTime,
-        duration: duration,
-        creditCost: creditCost,
-      );
-
-      await missionService.createMission(request: request, authToken: idToken!);
-
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mission requested successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error requesting mission: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
 }

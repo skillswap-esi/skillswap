@@ -18,7 +18,7 @@ public class MissionEvent {
     private UUID missionId;
     private UUID skillId;
     private UUID requesterId;
-    private UUID helperId;
+    private UUID providerId;
     private MissionEventType eventType;
     private String missionTitle;
     private Integer creditAmount;

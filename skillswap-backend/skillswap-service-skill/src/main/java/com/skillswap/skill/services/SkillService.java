@@ -34,7 +34,7 @@ public class SkillService {
     @Value("${skill.enrich-with-user-data:false}")
     private boolean enrichWithUserData;
     
-    public SkillResponse createSkill(CreateSkillRequest request, UUID ownerId) {
+    public SkillResponse createSkill(CreateSkillRequest request, String ownerId) {
         log.info("Creating skill for owner: {}", ownerId);
         
         Skill skill = new Skill();
@@ -88,7 +88,7 @@ public class SkillService {
                 .collect(Collectors.toList());
     }
     
-    public List<SkillResponse> getSkillsByUser(UUID userId) {
+    public List<SkillResponse> getSkillsByUser(String userId) {
         log.info("Getting skills for user: {}", userId);
         List<Skill> skills = skillRepository.findByOwnerId(userId);
         return skills.stream()
@@ -103,7 +103,7 @@ public class SkillService {
         return mapToResponse(skill, enrichWithUserData);
     }
     
-    public SkillResponse updateSkill(UUID skillId, UpdateSkillRequest request, UUID ownerId) {
+    public SkillResponse updateSkill(UUID skillId, UpdateSkillRequest request, String ownerId) {
         log.info("Updating skill: {} by owner: {}", skillId, ownerId);
         
         Skill skill = skillRepository.findById(skillId)
@@ -137,7 +137,7 @@ public class SkillService {
         return mapToResponse(updatedSkill, false);
     }
     
-    public void deleteSkill(UUID skillId, UUID ownerId) {
+    public void deleteSkill(UUID skillId, String ownerId) {
         log.info("Deleting skill: {} by owner: {}", skillId, ownerId);
         
         Skill skill = skillRepository.findById(skillId)

@@ -4,6 +4,8 @@ import '../auth_service.dart';
 import '../core/app_colors.dart';
 import '../models/mission_model.dart';
 import '../services/mission_service.dart';
+import '../services/chat_service.dart';
+import 'chat_page.dart';
 
 class MissionDetailPage extends StatefulWidget {
   final String missionId;
@@ -41,7 +43,9 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
       if (firebaseUser == null) throw Exception('Not authenticated');
 
       final idToken = await firebaseUser.getIdToken();
-      final mission = await missionService.getMissionById(widget.missionId, idToken!);
+      final userId = authService.value.userProfile?.userId;
+      if (userId == null) throw Exception('User profile not loaded');
+      final mission = await missionService.getMissionById(widget.missionId, idToken!, userId);
 
       if (mounted) {
         setState(() {
@@ -63,8 +67,10 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
     try {
       final firebaseUser = authService.value.currentUser;
       final idToken = await firebaseUser!.getIdToken();
+      final userId = authService.value.userProfile?.userId;
+      if (userId == null) throw Exception('User profile not loaded');
 
-      await missionService.acceptMission(widget.missionId, idToken!);
+      await missionService.acceptMission(widget.missionId, idToken!, userId);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -85,8 +91,10 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
     try {
       final firebaseUser = authService.value.currentUser;
       final idToken = await firebaseUser!.getIdToken();
+      final userId = authService.value.userProfile?.userId;
+      if (userId == null) throw Exception('User profile not loaded');
 
-      await missionService.startMission(widget.missionId, idToken!);
+      await missionService.startMission(widget.missionId, idToken!, userId);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -107,8 +115,10 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
     try {
       final firebaseUser = authService.value.currentUser;
       final idToken = await firebaseUser!.getIdToken();
+      final userId = authService.value.userProfile?.userId;
+      if (userId == null) throw Exception('User profile not loaded');
 
-      final result = await missionService.generateOtp(widget.missionId, idToken!);
+      final result = await missionService.generateOtp(widget.missionId, idToken!, userId);
 
       if (mounted) {
         setState(() {
@@ -138,11 +148,14 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
     try {
       final firebaseUser = authService.value.currentUser;
       final idToken = await firebaseUser!.getIdToken();
+      final userId = authService.value.userProfile?.userId;
+      if (userId == null) throw Exception('User profile not loaded');
 
       await missionService.validateOtp(
         missionId: widget.missionId,
         otpCode: _otpController.text,
         authToken: idToken!,
+        userId: userId,
       );
 
       if (mounted) {
@@ -155,6 +168,54 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _openChat() async {
+    try {
+      final userId = authService.value.userProfile?.userId;
+      if (userId == null) throw Exception('User profile not loaded');
+
+      // Determine the other participant
+      final otherUserId = _mission!.requesterId == userId 
+          ? _mission!.helperId 
+          : _mission!.requesterId;
+      
+      if (otherUserId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot start chat: No helper assigned yet'), backgroundColor: Colors.orange),
+        );
+        return;
+      }
+
+      // Get or create chat thread
+      final threadId = await chatService.getOrCreateChatThread(
+        userId1: userId,
+        userId2: otherUserId,
+        skillId: _mission!.skillId,
+      );
+
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatPage(
+              threadId: threadId,
+              otherUserId: otherUserId,
+              otherUserName: _mission!.requesterId == userId 
+                  ? _mission!.helperName ?? 'Helper'
+                  : _mission!.requesterName ?? 'Requester',
+              skillTitle: _mission!.skillTitle ?? _mission!.title,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening chat: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -206,6 +267,15 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
             const SizedBox(height: 16),
             _buildParticipantsCard(),
             const SizedBox(height: 16),
+            // Chat button - show when mission is accepted or in progress
+            if ((_mission!.status == MissionStatus.accepted || 
+                 _mission!.status == MissionStatus.inProgress) && 
+                (isRequester || isHelper))
+              _buildChatButton(),
+            if ((_mission!.status == MissionStatus.accepted || 
+                 _mission!.status == MissionStatus.inProgress) && 
+                (isRequester || isHelper))
+              const SizedBox(height: 16),
             if (_mission!.status == MissionStatus.pending && isHelper)
               _buildAcceptButton(),
             if (_mission!.status == MissionStatus.accepted && (isRequester || isHelper))
@@ -291,6 +361,22 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
         child: const Text('Accept Mission', style: TextStyle(fontSize: 16)),
+      ),
+    );
+  }
+
+  Widget _buildChatButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: _openChat,
+        icon: const Icon(Icons.chat_bubble_outline),
+        label: const Text('Open Chat', style: TextStyle(fontSize: 16)),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          side: BorderSide(color: AppColors.primary, width: 2),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+        ),
       ),
     );
   }

@@ -25,8 +25,11 @@ public class MissionEventPublisher {
     @Value("${kafka.topics.mission-events}")
     private String missionEventsTopic;
     
-    public void publishMissionCreated(Mission mission) {
+    public void publishMissionCreated(Mission mission, String skillOwnerId) {
         MissionEvent event = buildEvent(mission, MissionEventType.MISSION_CREATED);
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("skillOwnerId", skillOwnerId);
+        event.setMetadata(metadata);
         publishEvent(event);
     }
     
@@ -66,7 +69,7 @@ public class MissionEventPublisher {
                 .missionId(mission.getMissionId())
                 .skillId(mission.getSkillId())
                 .requesterId(mission.getRequesterId())
-                .helperId(mission.getHelperId())
+                .providerId(mission.getProviderId())
                 .eventType(eventType)
                 .missionTitle(mission.getTitle())
                 .creditAmount(mission.getCreditCost())

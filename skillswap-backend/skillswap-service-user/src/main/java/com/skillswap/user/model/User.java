@@ -33,6 +33,7 @@ public class User {
     private String avatar; // URL ou key
     private List<String> roles; // ["USER"], ["ADMIN"]
     private List<String> fcmTokens; // Tokens pour notifications push
+    private String passwordHash; // Optional - only for admin users (backoffice login)
     private Date createdAt;
     private Date updatedAt;
 }

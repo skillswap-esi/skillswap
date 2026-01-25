@@ -14,7 +14,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class SkillResponse {
     private UUID skillId;
-    private UUID ownerId;
+    private String ownerId;
     private String title;
     private String description;
     private String category;

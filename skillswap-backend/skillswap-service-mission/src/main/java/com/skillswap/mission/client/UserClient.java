@@ -9,12 +9,12 @@ import java.util.UUID;
 @FeignClient(name = "service-user", url = "${user.service.url}")
 public interface UserClient {
     
-    @GetMapping("/api/users/{userId}")
-    UserDto getUserById(@PathVariable("userId") UUID userId);
+    @GetMapping("/users/{userId}")
+    UserDto getUserById(@PathVariable("userId") String userId);
     
-    @PostMapping("/api/users/{userId}/credits/debit")
-    void debitCredits(@PathVariable("userId") UUID userId, @RequestParam("amount") Integer amount);
+    @PostMapping("/users/{userId}/credits/debit")
+    void debitCredits(@PathVariable("userId") String userId, @RequestParam("amount") Integer amount);
     
-    @PostMapping("/api/users/{userId}/credits/credit")
-    void creditCredits(@PathVariable("userId") UUID userId, @RequestParam("amount") Integer amount);
+    @PostMapping("/users/{userId}/credits/credit")
+    void creditCredits(@PathVariable("userId") String userId, @RequestParam("amount") Integer amount);
 }

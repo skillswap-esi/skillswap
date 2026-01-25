@@ -20,14 +20,14 @@ public class MissionResponse {
     private String skillTitle;
     private String skillCategory;
     
-    private UUID requesterId;
+    private String requesterId;
     private String requesterName;
     private String requesterAvatar;
     
-    private UUID helperId;
-    private String helperName;
-    private String helperAvatar;
-    private Integer helperScore;
+    private String providerId;
+    private String providerName;
+    private String providerAvatar;
+    private Integer providerScore;
     
     private String title;
     private String description;

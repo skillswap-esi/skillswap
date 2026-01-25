@@ -380,10 +380,15 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
   }
 
   Future<void> _verifyPhone() async {
+    print('[PhoneVerification] === VERIFY PHONE START ===');
+    
     if (_phoneController.text.isEmpty) {
+      print('[PhoneVerification] Phone number is empty');
       setState(() => _error = 'Please enter a phone number');
       return;
     }
+
+    print('[PhoneVerification] Phone: ${_phoneController.text}');
 
     setState(() {
       _isLoading = true;
@@ -394,22 +399,31 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
       final userId = authService.value.userProfile?.userId;
       final idToken = await authService.value.getIdToken();
       
+      print('[PhoneVerification] User ID: $userId');
+      print('[PhoneVerification] Has token: ${idToken != null}');
+      
       if (userId == null || idToken == null) {
         throw Exception('User not authenticated');
       }
 
       // First update phone number if different
       final currentPhone = authService.value.userProfile?.phoneNumber;
+      print('[PhoneVerification] Current phone: $currentPhone');
+      
       if (currentPhone != _phoneController.text) {
+        print('[PhoneVerification] Updating phone number...');
         await apiService.updateProfile(
           userId: userId,
           phoneNumber: _phoneController.text,
           authToken: idToken,
         );
+        print('[PhoneVerification] Phone number updated');
       }
 
       // Then verify phone (awards credits)
+      print('[PhoneVerification] Calling verify phone API...');
       final updatedUser = await apiService.verifyPhone(userId, idToken);
+      print('[PhoneVerification] Phone verified! New credits: ${updatedUser.creditsBalance}');
       
       // Update local profile
       authService.value.setUserProfile(updatedUser);
@@ -430,11 +444,14 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('[PhoneVerification] ERROR: $e');
+      print('[PhoneVerification] Stack trace: $stackTrace');
+      
       setState(() {
         _error = e.toString().contains('already verified')
             ? 'Phone is already verified!'
-            : 'Failed to verify phone. Please try again.';
+            : 'Failed to verify phone: ${e.toString()}';
         _isLoading = false;
       });
     }

@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/missions")
+@RequestMapping("/missions")
 @RequiredArgsConstructor
 @Slf4j
 public class MissionController {
@@ -24,7 +24,7 @@ public class MissionController {
     @PostMapping
     public ResponseEntity<MissionResponse> createMission(
             @Valid @RequestBody CreateMissionRequest request,
-            @RequestHeader("X-User-Id") UUID requesterId) {
+            @RequestHeader("X-User-Id") String requesterId) {
         log.info("POST /api/missions - Creating mission for requester: {}", requesterId);
         MissionResponse response = missionService.createMission(request, requesterId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -39,7 +39,7 @@ public class MissionController {
     
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<MissionResponse>> getUserMissions(
-            @PathVariable UUID userId,
+            @PathVariable String userId,
             @RequestParam(required = false) String role,
             @RequestParam(required = false) MissionStatus status) {
         log.info("GET /api/missions/user/{} - Getting missions (role: {}, status: {})", 
@@ -51,26 +51,26 @@ public class MissionController {
     @PostMapping("/{missionId}/accept")
     public ResponseEntity<MissionResponse> acceptMission(
             @PathVariable UUID missionId,
-            @RequestHeader("X-User-Id") UUID helperId) {
-        log.info("POST /api/missions/{}/accept - Helper {} accepting mission", missionId, helperId);
-        MissionResponse response = missionService.acceptMission(missionId, helperId);
+            @RequestHeader("X-User-Id") String providerId) {
+        log.info("POST /api/missions/{}/accept - Provider {} accepting mission", missionId, providerId);
+        MissionResponse response = missionService.acceptMission(missionId, providerId);
         return ResponseEntity.ok(response);
     }
     
     @PostMapping("/{missionId}/reject")
     public ResponseEntity<Void> rejectMission(
             @PathVariable UUID missionId,
-            @RequestHeader("X-User-Id") UUID helperId,
+            @RequestHeader("X-User-Id") String providerId,
             @Valid @RequestBody CancelMissionRequest request) {
-        log.info("POST /api/missions/{}/reject - Helper {} rejecting mission", missionId, helperId);
-        missionService.rejectMission(missionId, helperId, request.getReason());
+        log.info("POST /api/missions/{}/reject - Provider {} rejecting mission", missionId, providerId);
+        missionService.rejectMission(missionId, providerId, request.getReason());
         return ResponseEntity.ok().build();
     }
     
     @PostMapping("/{missionId}/cancel")
     public ResponseEntity<Void> cancelMission(
             @PathVariable UUID missionId,
-            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Id") String userId,
             @Valid @RequestBody CancelMissionRequest request) {
         log.info("POST /api/missions/{}/cancel - User {} cancelling mission", missionId, userId);
         missionService.cancelMission(missionId, userId, request.getReason());
@@ -80,7 +80,7 @@ public class MissionController {
     @PostMapping("/{missionId}/start")
     public ResponseEntity<MissionResponse> startMission(
             @PathVariable UUID missionId,
-            @RequestHeader("X-User-Id") UUID userId) {
+            @RequestHeader("X-User-Id") String userId) {
         log.info("POST /api/missions/{}/start - User {} starting mission", missionId, userId);
         MissionResponse response = missionService.startMission(missionId, userId);
         return ResponseEntity.ok(response);
@@ -89,16 +89,16 @@ public class MissionController {
     @PostMapping("/{missionId}/generate-otp")
     public ResponseEntity<OtpResponse> generateOtp(
             @PathVariable UUID missionId,
-            @RequestHeader("X-User-Id") UUID helperId) {
-        log.info("POST /api/missions/{}/generate-otp - Helper {} generating OTP", missionId, helperId);
-        OtpResponse response = missionService.generateOtp(missionId, helperId);
+            @RequestHeader("X-User-Id") String providerId) {
+        log.info("POST /api/missions/{}/generate-otp - Provider {} generating OTP", missionId, providerId);
+        OtpResponse response = missionService.generateOtp(missionId, providerId);
         return ResponseEntity.ok(response);
     }
     
     @PostMapping("/{missionId}/validate-otp")
     public ResponseEntity<MissionResponse> validateOtp(
             @PathVariable UUID missionId,
-            @RequestHeader("X-User-Id") UUID requesterId,
+            @RequestHeader("X-User-Id") String requesterId,
             @Valid @RequestBody ValidateOtpRequest request) {
         log.info("POST /api/missions/{}/validate-otp - Requester {} validating OTP", 
                 missionId, requesterId);

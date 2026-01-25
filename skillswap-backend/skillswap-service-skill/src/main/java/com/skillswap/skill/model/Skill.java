@@ -23,7 +23,7 @@ public class Skill {
     private UUID skillId;
     
     @Indexed
-    private UUID ownerId;
+    private String ownerId;
     
     @Indexed
     private String category;

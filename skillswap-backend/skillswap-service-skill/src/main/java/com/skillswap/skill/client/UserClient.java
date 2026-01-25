@@ -11,5 +11,5 @@ import java.util.UUID;
 public interface UserClient {
     
     @GetMapping("/users/{userId}")
-    UserDto getUserById(@PathVariable("userId") UUID userId);
+    UserDto getUserById(@PathVariable("userId") String userId);
 }

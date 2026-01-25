@@ -27,10 +27,10 @@ public class Mission {
     private UUID skillId;
     
     @Indexed
-    private UUID requesterId;  // Person requesting help
+    private String requesterId;  // Demandeur - Person requesting help
     
     @Indexed
-    private UUID helperId;     // Person providing help (null until accepted)
+    private String providerId;   // Prestataire - Person providing help (null until accepted)
     
     private String title;
     private String description;
@@ -42,9 +42,12 @@ public class Mission {
     private Integer duration;      // Duration in minutes
     private Integer creditCost;
     
-    // Location (copied from skill for convenience)
-    private GeoJsonPoint geoPoint;
-    private String location;
+    // Meeting point for the mission (lieu public)
+    private MeetingPoint meetingPoint;
+    
+    // OTP for mission validation
+    private String generatedOtp;
+    private Date otpExpiresAt;
     
     @CreatedDate
     private Date createdAt;
@@ -59,4 +62,14 @@ public class Mission {
     
     private String cancellationReason;
     private String rejectionReason;
+    
+    // Inner class for meeting point
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MeetingPoint {
+        private Double lat;
+        private Double lng;
+        private UUID partnerPlaceId;  // Reference to PartnerPlace if selected
+    }
 }

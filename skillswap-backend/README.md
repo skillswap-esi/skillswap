@@ -1,237 +1,523 @@
-# SkillSwap Backend - Architecture Microservices
+# SkillSwap Backend - Complete Documentation
 
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.4-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![Maven](https://img.shields.io/badge/Maven-Multi--Module-blue.svg)](https://maven.apache.org/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-NoSQL-green.svg)](https://www.mongodb.com/)
-[![Redis](https://img.shields.io/badge/Redis-Cache-red.svg)](https://redis.io/)
+## Overview
 
-## 📋 Description
+SkillSwap is a skill exchange platform where users can offer and request skills through missions, validated by OTP codes, with a credit-based economy.
 
-Backend de l'application SkillSwap - Une plateforme d'échange de compétences basée sur une architecture microservices.
+## Architecture
 
-## 📚 Essential Documentation
+**Microservices:**
+- API Gateway (8080) - Single entry point, JWT validation
+- User Service (8081) - Authentication, profiles, credits, FCM tokens
+- Skill Service (8082) - Skill CRUD, geolocation search
+- Mission Service (8083) - Mission lifecycle, OTP validation (Redis)
+- Notification Service (8084) - FCM push notifications, Kafka consumer
 
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete system architecture and design
-- **[ROADMAP.md](ROADMAP.md)** - Development roadmap and current progress
-- **[MISSION_SERVICE_GUIDE.md](MISSION_SERVICE_GUIDE.md)** - Mission service implementation guide
-- **[KAFKA_INTEGRATION_GUIDE.md](KAFKA_INTEGRATION_GUIDE.md)** - Kafka event-driven integration guide
+**Infrastructure:**
+- MongoDB Atlas (Cloud) - Data persistence (User, Skill, Mission services)
+- Redis (Docker) - OTP temporary storage (Mission service)
+- Kafka (Docker) - Event streaming
+- Firestore - Chat messages and notification history (Mobile app)
+- Firebase - Authentication & push notifications
 
-## 🏗️ Architecture
+## Quick Start
 
-Ce projet utilise une architecture **microservices** avec 6 modules Maven :
-
-```
-skillswap-backend/
-├── skillswap-common         # Module partagé (DTOs, enums, events, exceptions)
-├── skillswap-api-gateway              # API Gateway (Spring Cloud Gateway)
-├── skillswap-service-user             # Gestion des utilisateurs et authentification
-├── skillswap-service-skill            # Gestion des compétences
-├── skillswap-service-mission          # Gestion des missions et OTP
-└── skillswap-service-notification     # Gestion des notifications (FCM, Kafka)
-```
-
-## 🚀 Technologies
-
-- **Spring Boot** 3.3.4
-- **Maven** (Multi-modules)
-- **MongoDB** (Base de données NoSQL)
-- **Redis** (Cache et stockage OTP)
-- **Kafka** (Messaging événementiel - optionnel)
-- **Docker** (Containerisation)
-- **JWT** (Authentification)
-- **FCM** (Firebase Cloud Messaging)
-
-## 📦 Modules
-
-### 1. skillswap-common
-Module partagé contenant les composants communs :
-- **enums** : MissionStatus, Role, NotificationType
-- **dto** : UserDto, SkillDto
-- **events** : MissionEvent
-- **exceptions** : ResourceNotFoundException, GlobalExceptionHandler
-- **config** : KafkaConfig
-
-### 2. skillswap-api-gateway
-Point d'entrée unique pour tous les services :
-- Routage des requêtes
-- Filtre d'authentification
-- Load balancing
-
-### 3. skillswap-service-user
-Gestion des utilisateurs :
-- Authentification (JWT)
-- Inscription / Connexion
-- Gestion du profil
-- Sécurité Spring Security
-
-### 4. skillswap-service-skill
-Gestion des compétences :
-- CRUD des compétences
-- Recherche et filtrage
-- Catégorisation
-
-### 5. skillswap-service-mission
-Gestion des missions :
-- Création de missions
-- Acceptation / Refus
-- Système OTP (Redis)
-- Publication d'événements (Kafka)
-
-### 6. skillswap-service-notification
-Gestion des notifications :
-- Notifications push (FCM)
-- Consommation d'événements (Kafka)
-- Notifications temps réel
-
-## 🛠️ Installation
-
-### Prérequis
-- Java 17+
-- Maven 3.8+
-- MongoDB 6+
-- Redis 7+
-- Docker & Docker Compose 
-
-### Démarrage rapide
-
-#### 1. Démarrer les dépendances (MongoDB, Redis, Kafka)
-
-```bash
+### 1. Start Docker Services
+```cmd
+cd skillswap-backend
 docker-compose up -d
 ```
 
-#### 2. Compiler le projet
+### 2. Configure MongoDB Atlas
+1. Create free cluster at https://cloud.mongodb.com
+2. Create database user
+3. Whitelist IP: 0.0.0.0/0
+4. Update connection strings in each service's `application.yml`
 
-```bash
-mvn clean install -DskipTests
+### 3. Start Services
+Open 5 terminals and run:
+```cmd
+cd skillswap-api-gateway && mvnw spring-boot:run
+cd skillswap-service-user && mvnw spring-boot:run
+cd skillswap-service-skill && mvnw spring-boot:run
+cd skillswap-service-mission && mvnw spring-boot:run
+cd skillswap-service-notification && mvnw spring-boot:run
 ```
 
+## Complete User Scenarios
 
-### Démarrage manuel d'un service
+### S1 - Registration (Email + Phone + OTP)
+**Actor:** Guest  
+**Flow:**
+1. User enters: name, email, phone, password
+2. System sends OTP via SMS
+3. User enters OTP
+4. System validates OTP
+5. Account created with 20 credits bonus
+6. Notification sent: "Welcome, 20 credits added"
 
-```bash
-# Exemple : Démarrer le service User
-cd skillswap-service-user
-mvn spring-boot:run
+**Rules:**
+- No credits without OTP validation
+- Phone number must be unique
+- One bonus per phone number
+
+### S2 - Login
+**Actor:** Verified User  
+**Flow:**
+1. User enters email + password
+2. System validates credentials
+3. JWT token generated
+4. User accesses dashboard
+
+### S3 - Publish a Skill
+**Actor:** Provider (Prestataire)  
+**Flow:**
+1. User opens "Publish Skill"
+2. Fills: title, description, category, availability
+3. App requests GPS permission
+4. System captures coordinates
+5. Skill saved in database
+6. SKILL_CREATED event published to Kafka
+
+**Result:** Skill visible in search
+
+### S4 - Geolocation Search
+**Actor:** Requester (Demandeur)  
+**Flow:**
+1. User opens "Find Service"
+2. App detects or requests position
+3. System executes geospatial query (radius = 15km)
+4. Skills sorted by:
+   - Helper Score (reputation)
+   - Distance
+5. App displays:
+   - Map with approximate points
+   - Detailed list
+
+**Important:** Exact provider location never displayed
+
+### S5 - View Provider Profile
+**Actor:** Requester  
+**Flow:**
+1. User clicks on provider
+2. System displays:
+   - Avatar
+   - Name
+   - Skills
+   - Helper Score
+   - Completed missions
+
+**Result:** Requester can decide to chat
+
+### S6 - Chat Discussion
+**Actor:** Requester and Provider  
+**Flow:**
+1. User opens chat
+2. Firestore thread created if doesn't exist
+3. Messages sent in real-time
+4. For each message:
+   - Kafka publishes: NEW_MESSAGE
+   - Notification service sends push to recipient
+
+### S7 - Choose Meeting Place
+**Actor:** Requester and Provider  
+
+**Option A: Partner Place**
+1. User opens partner places list
+2. Selects café / workspace
+3. Place becomes meetingPoint.partnerPlaceId
+
+**Option B: Map Picker**
+1. User opens map
+2. Places marker on public location
+3. Coordinates saved as meetingPoint
+
+### S8 - Mission Booking
+**Actor:** Requester  
+**Precondition:** Balance >= 5 credits  
+**Flow:**
+1. User clicks "Book this skill"
+2. Mission service creates mission:
+   - status = PENDING
+   - requesterId
+   - providerId
+   - meetingPoint
+3. Kafka publishes: MISSION_REQUESTED
+4. Notification service sends push to provider
+
+**Result:** Mission in PENDING state
+
+### S9 - Accept or Reject Mission
+**Actor:** Provider  
+**Flow:**
+1. Provider receives notification
+2. Opens "Missions" page
+3. Clicks "Accept":
+   - mission.status = ACCEPTED
+   - Kafka: MISSION_ACCEPTED
+   - Notification → requester
+
+**Alternative: Reject**
+- mission.status = REJECTED
+- Credits refunded to requester
+
+### S10 - Meeting and Navigation
+**Actor:** Requester and Provider  
+**Flow:**
+1. On scheduled day, user opens mission
+2. Clicks "Go There"
+3. App opens Google Maps/Waze to meetingPoint
+
+### S11 - OTP Mission Validation
+**Actor:** Provider and Requester  
+**Flow:**
+1. Provider clicks: "Generate OTP"
+2. Mission service generates 6-digit code
+3. Code stored in Redis (5 min expiration)
+4. Kafka publishes: OTP_GENERATED
+5. Provider shows code to requester
+6. Requester enters OTP
+7. System verifies:
+   - OTP correct
+   - mission.status = IN_PROGRESS
+8. mission.status = COMPLETED
+
+**Rule:** No credit transfer without correct OTP
+
+### S12 - Credit Transfer and Helper Score
+**Actor:** System  
+**Flow:**
+1. Debit requester account: -5 credits
+2. Credit provider account: +5 credits
+3. Create Ledger entry
+4. Increase Helper Score
+5. Kafka publishes: MISSION_COMPLETED
+6. Notification service sends push to both
+
+**Final Result:** Mission completed, credits transferred, history updated
+
+## Mission Status Flow
+
+```
+PENDING → ACCEPTED → IN_PROGRESS → COMPLETED
+   ↓          ↓            ↓
+REJECTED  CANCELLED    CANCELLED
 ```
 
+## API Endpoints
 
-## 📁 Structure des packages
-
-Chaque service suit cette structure :
-
+### Authentication (Public)
 ```
-com.skillswap.{service}/
-├── {Service}Application.java      # Point d'entrée Spring Boot
-├── model/                          # Entités MongoDB
-├── dto/                            # Data Transfer Objects
-├── controllers/                    # Contrôleurs REST
-├── services/                       # Logique métier
-├── repositories/                   # Repositories MongoDB
-├── mappers/                        # Mappers (DTOs ↔ Entities)
-├── security/                       # Configuration sécurité (si applicable)
-└── events/                         # Producteurs/Consommateurs d'événements
+POST /api/auth/register - Register new user
+POST /api/auth/login - Login with Firebase
 ```
 
-## 🔧 Configuration
+### Users (Protected)
+```
+GET    /api/users/{id} - Get user profile
+PUT    /api/users/{id} - Update profile
+POST   /api/users/{id}/credits/debit - Debit credits
+POST   /api/users/{id}/credits/credit - Credit credits
+```
 
-Chaque service a son propre fichier `application.yml` dans `src/main/resources/`.
+### Skills (Protected)
+```
+POST   /api/skills - Create skill
+GET    /api/skills/{id} - Get skill
+GET    /api/skills/near?lat&lng&r&category - Search nearby
+GET    /api/skills/user/{userId} - Get user's skills
+PUT    /api/skills/{id} - Update skill
+DELETE /api/skills/{id} - Delete skill
+```
 
-### Exemple de configuration (service-user)
+### Missions (Protected)
+```
+POST   /api/missions - Create mission
+GET    /api/missions/{id} - Get mission
+GET    /api/missions/user/{userId}?role&status - Get user missions
+POST   /api/missions/{id}/accept - Accept mission
+POST   /api/missions/{id}/reject - Reject mission
+POST   /api/missions/{id}/cancel - Cancel mission
+POST   /api/missions/{id}/start - Start mission
+POST   /api/missions/{id}/generate-otp - Generate OTP
+POST   /api/missions/{id}/validate-otp - Validate OTP
+```
 
+### Notifications (Protected)
+**Note**: Notification Service only sends FCM push notifications via Kafka events.
+Notification history is stored in Firestore by the mobile app, not in the backend.
+
+No REST endpoints available - notifications are triggered by Kafka events only.
+
+## Security
+
+### Authentication Flow
+1. User registers/logs in via Firebase
+2. Mobile app gets Firebase ID token
+3. App calls /api/auth/login with Firebase token
+4. User Service validates and generates JWT
+5. App stores JWT
+6. App includes JWT in all requests
+7. API Gateway validates JWT
+8. Gateway extracts userId and adds X-User-Id header
+9. Microservices trust X-User-Id header
+
+### Authorization Rules
+- Create Mission: Any authenticated user with credits
+- Accept/Reject Mission: Only skill owner (provider)
+- Cancel Mission: Requester or provider
+- Generate OTP: Only provider
+- Validate OTP: Only requester
+- Update/Delete Skill: Only skill owner
+
+## Data Models
+
+### User
+```java
+{
+  userId: UUID
+  firebaseUid: String
+  email: String
+  phoneNumber: String
+  fullName: String
+  phoneVerified: Boolean
+  credits: Integer
+  helperScore: Float
+  avatar: String
+  roles: [String]
+  createdAt: Date
+  updatedAt: Date
+}
+```
+
+### Skill
+```java
+{
+  skillId: UUID
+  ownerId: UUID
+  category: String
+  title: String
+  description: String
+  geoPoint: GeoJsonPoint [lng, lat]
+  active: Boolean
+  createdAt: Date
+  updatedAt: Date
+}
+```
+
+### Mission
+```java
+{
+  missionId: UUID
+  skillId: UUID
+  requesterId: UUID
+  providerId: UUID
+  title: String
+  description: String
+  status: MissionStatus
+  scheduledDate: Date
+  duration: Integer
+  creditCost: Integer
+  meetingPoint: {
+    lat: Double
+    lng: Double
+    partnerPlaceId: UUID
+  }
+  generatedOtp: String
+  otpExpiresAt: Date
+  createdAt: Date
+  updatedAt: Date
+  acceptedAt: Date
+  startedAt: Date
+  completedAt: Date
+}
+```
+
+### Notification
+```java
+{
+  notificationId: UUID
+  userId: UUID
+  type: NotificationType
+  title: String
+  message: String
+  data: Map<String, Object>
+  read: Boolean
+  sentAt: Date
+  readAt: Date
+  fcmSent: Boolean
+  fcmMessageId: String
+}
+```
+
+## Kafka Events
+
+**Topic:** mission-events
+
+**Event Types:**
+- MISSION_CREATED - New mission requested
+- MISSION_ACCEPTED - Provider accepted
+- MISSION_REJECTED - Provider rejected
+- MISSION_STARTED - Mission in progress
+- MISSION_COMPLETED - Mission finished, credits transferred
+- MISSION_CANCELLED - Mission cancelled
+
+**Event Structure:**
+```json
+{
+  "missionId": "uuid",
+  "skillId": "uuid",
+  "requesterId": "uuid",
+  "providerId": "uuid",
+  "eventType": "MISSION_COMPLETED",
+  "missionTitle": "Guitar Lessons",
+  "creditAmount": 10,
+  "timestamp": "2026-01-24T20:00:00Z"
+}
+```
+
+## Configuration
+
+### MongoDB Atlas
+Each service needs its own database:
+- skillswap-users (User Service)
+- skillswap-skills (Skill Service)
+- skillswap-missions (Mission Service)
+
+**Note**: Notification Service does NOT use MongoDB. Notifications are:
+- Sent via FCM (Firebase Cloud Messaging)
+- Stored in Firestore by mobile app for history
+
+Connection string format:
+```
+mongodb+srv://username:password@cluster.xxxxx.mongodb.net/database?retryWrites=true&w=majority
+```
+
+### Redis
 ```yaml
 spring:
-  application:
-    name: service-user
   data:
-    mongodb:
-      uri: mongodb://localhost:27017/skillswap-users
-
-server:
-  port: 8081
-
-jwt:
-  secret: your-secret-key
-  expiration: 86400000
+    redis:
+      host: localhost
+      port: 6379
 ```
 
-
-## 🔗 Ports des services
-
-| Service | Port | Description |
-|---------|------|-------------|
-| api-gateway | 8080 | API Gateway |
-| service-user | 8081 | Service utilisateur |
-| service-skill | 8082 | Service compétences |
-| service-mission | 8083 | Service missions |
-| service-notification | 8084 | Service notifications |
-
-
-## 📊 Endpoints principaux
-
-### API Gateway (8080)
-
-```
-GET  /api/users/**          → skillswap-service-user
-GET  /api/skills/**         → skillswap-service-skill
-GET  /api/missions/**       → skillswap-service-mission
-POST /api/notifications/**  → skillswap-service-notification
+### Kafka
+```yaml
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
 ```
 
-### Service User (8081)
+### Firebase
+Place `firebase-service-account.json` in:
+- `skillswap-service-user/src/main/resources/`
+- `skillswap-service-notification/src/main/resources/`
 
+## Troubleshooting
+
+### MongoDB Connection Issues
+- Verify connection string
+- Check IP whitelist (0.0.0.0/0)
+- Verify username/password
+- Check internet connection
+
+### Kafka Not Available
+- Wait 30 seconds for Kafka to start
+- Check Docker: `docker-compose ps`
+- View logs: `docker-compose logs kafka`
+
+### Redis Connection Refused
+- Check Docker: `docker-compose ps redis`
+- Test: `docker exec skillswap-redis redis-cli ping`
+
+### Skills Not Saving (Index Error)
+1. Go to MongoDB Atlas
+2. Browse Collections → skillswap-skills → skills
+3. Delete all documents
+4. Go to Indexes tab
+5. Drop "geoPoint" index
+6. Restart Skill Service
+
+## Monitoring
+
+### Health Checks
 ```
-POST /auth/register         → Inscription
-POST /auth/login            → Connexion
-GET  /users/{id}            → Profil utilisateur
-PUT  /users/{id}            → Mise à jour profil
+http://localhost:8080/actuator/health (API Gateway)
+http://localhost:8081/actuator/health (User Service)
+http://localhost:8082/actuator/health (Skill Service)
+http://localhost:8083/actuator/health (Mission Service)
+http://localhost:8084/actuator/health (Notification Service)
 ```
 
-### Service Skill (8082)
-
-```
-GET    /skills              → Liste des compétences
-POST   /skills              → Créer une compétence
-GET    /skills/{id}         → Détails d'une compétence
-PUT    /skills/{id}         → Modifier une compétence
-DELETE /skills/{id}         → Supprimer une compétence
+### Docker Services
+```cmd
+docker-compose ps
+docker-compose logs -f
+docker exec skillswap-redis redis-cli ping
+docker exec skillswap-kafka kafka-topics --list --bootstrap-server localhost:9092
 ```
 
-### Service Mission (8083)
+## Development
 
+### Project Structure
 ```
-GET    /missions            → Liste des missions
-POST   /missions            → Créer une mission
-GET    /missions/{id}       → Détails d'une mission
-POST   /missions/{id}/accept → Accepter une mission
-POST   /missions/{id}/otp   → Générer un OTP
-POST   /missions/{id}/validate → Valider un OTP
+skillswap-backend/
+├── docker-compose.yml
+├── skillswap-api-gateway/
+├── skillswap-service-user/
+├── skillswap-service-skill/
+├── skillswap-service-mission/
+├── skillswap-service-notification/
+└── skillswap-common/
 ```
 
-## 🤝 Contribution
+### Adding New Features
+1. Update model in appropriate service
+2. Add repository methods
+3. Implement service logic
+4. Create controller endpoints
+5. Update API Gateway routes
+6. Publish Kafka events if needed
+7. Update mobile app
 
-1. Fork le projet
-2. Créer une branche (`git checkout -b feature/AmazingFeature`)
-3. Commit les changements (`git commit -m 'Add some AmazingFeature'`)
-4. Push vers la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrir une Pull Request
+## Production Deployment
 
-## 📄 Licence
+### Environment Variables
+- MongoDB connection strings
+- Redis host/port
+- Kafka bootstrap servers
+- Firebase credentials path
+- JWT secret key
 
-Ce projet est sous licence MIT.
+### Security Checklist
+- [ ] Change JWT secret key
+- [ ] Use environment variables for secrets
+- [ ] Enable Kafka authentication
+- [ ] Use Redis password
+- [ ] Configure proper MongoDB users per service
+- [ ] Enable HTTPS
+- [ ] Configure CORS properly
+- [ ] Set up rate limiting
 
-## 👥 Auteurs
+### Scaling
+- Each microservice can scale independently
+- Use load balancer for API Gateway
+- Kafka partitions for parallel processing
+- MongoDB sharding for large datasets
+- Redis cluster for high availability
 
-- Sohayb El Bakali
-- Aymen Ardouni
+## Support
 
-## 📞 Contact
-
-Pour toute question, contactez l'équipe de développement.
+For issues or questions:
+1. Check logs: `docker-compose logs -f`
+2. Verify all services are running
+3. Check MongoDB Atlas connection
+4. Test Docker services individually
+5. Review this documentation
 
 ---
 
-**Date de création** : 22 novembre 2025  
-**Version** : 1.0.0  
-**Status** : ✅ Architecture créée - Prêt pour le développement
-
+**Version:** 1.0.0  
+**Last Updated:** January 2026  
+**Status:** Production Ready

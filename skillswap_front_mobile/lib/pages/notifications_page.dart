@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../auth_service.dart';
 import '../core/app_colors.dart';
-import '../models/notification_model.dart';
-import '../services/notification_service.dart';
 import 'mission_detail_page.dart';
 
 class NotificationsPage extends StatefulWidget {
@@ -13,49 +12,40 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  List<NotificationModel> _notifications = [];
-  bool _isLoading = false;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  Stream<QuerySnapshot>? _notificationsStream;
 
   @override
   void initState() {
     super.initState();
-    _loadNotifications();
+    _initializeNotifications();
   }
 
-  Future<void> _loadNotifications() async {
-    if (!mounted) return;
-    setState(() => _isLoading = true);
-
-    try {
-      final firebaseUser = authService.value.currentUser;
-      if (firebaseUser == null) throw Exception('Not authenticated');
-
-      final idToken = await firebaseUser.getIdToken();
-      final notifications = await notificationService.getNotifications(idToken!);
-
-      if (mounted) {
-        setState(() {
-          _notifications = notifications;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
+  void _initializeNotifications() {
+    final user = authService.value.currentUser;
+    if (user != null) {
+      _notificationsStream = _firestore
+          .collection('notifications')
+          .doc(user.uid)
+          .collection('items')
+          .orderBy('timestamp', descending: true)
+          .limit(50)
+          .snapshots();
     }
   }
 
   Future<void> _markAsRead(String notificationId) async {
     try {
-      final firebaseUser = authService.value.currentUser;
-      final idToken = await firebaseUser!.getIdToken();
+      final user = authService.value.currentUser;
+      if (user == null) return;
 
-      await notificationService.markAsRead(notificationId, idToken!);
-      _loadNotifications();
+      await _firestore
+          .collection('notifications')
+          .doc(user.uid)
+          .collection('items')
+          .doc(notificationId)
+          .update({'read': true});
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -67,15 +57,28 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   Future<void> _markAllAsRead() async {
     try {
-      final firebaseUser = authService.value.currentUser;
-      final idToken = await firebaseUser!.getIdToken();
+      final user = authService.value.currentUser;
+      if (user == null) return;
 
-      await notificationService.markAllAsRead(idToken!);
-      _loadNotifications();
+      final unreadDocs = await _firestore
+          .collection('notifications')
+          .doc(user.uid)
+          .collection('items')
+          .where('read', isEqualTo: false)
+          .get();
+
+      final batch = _firestore.batch();
+      for (var doc in unreadDocs.docs) {
+        batch.update(doc.reference, {'read': true});
+      }
+      await batch.commit();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All marked as read'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('All marked as read'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
@@ -89,15 +92,22 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   Future<void> _deleteNotification(String notificationId) async {
     try {
-      final firebaseUser = authService.value.currentUser;
-      final idToken = await firebaseUser!.getIdToken();
+      final user = authService.value.currentUser;
+      if (user == null) return;
 
-      await notificationService.deleteNotification(notificationId, idToken!);
-      _loadNotifications();
+      await _firestore
+          .collection('notifications')
+          .doc(user.uid)
+          .collection('items')
+          .doc(notificationId)
+          .delete();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Notification deleted'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Notification deleted'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
@@ -118,28 +128,40 @@ class _NotificationsPageState extends State<NotificationsPage> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
-          if (_notifications.any((n) => !n.read))
-            IconButton(
-              icon: const Icon(Icons.done_all),
-              onPressed: _markAllAsRead,
-              tooltip: 'Mark all as read',
-            ),
+          IconButton(
+            icon: const Icon(Icons.done_all),
+            onPressed: _markAllAsRead,
+            tooltip: 'Mark all as read',
+          ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _notifications.isEmpty
-              ? _buildEmptyState()
-              : RefreshIndicator(
-                  onRefresh: _loadNotifications,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _notifications.length,
-                    itemBuilder: (context, index) {
-                      return _buildNotificationCard(_notifications[index]);
-                    },
-                  ),
-                ),
+      body: _notificationsStream == null
+          ? const Center(child: Text('Please login to view notifications'))
+          : StreamBuilder<QuerySnapshot>(
+              stream: _notificationsStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return _buildEmptyState();
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    final doc = snapshot.data!.docs[index];
+                    return _buildNotificationCard(doc);
+                  },
+                );
+              },
+            ),
     );
   }
 
@@ -159,23 +181,32 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
-  Widget _buildNotificationCard(NotificationModel notification) {
+  Widget _buildNotificationCard(QueryDocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final notificationId = doc.id;
+    final type = data['type'] ?? 'GENERAL';
+    final title = data['title'] ?? 'Notification';
+    final message = data['message'] ?? '';
+    final read = data['read'] ?? false;
+    final timestamp = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final notifData = data['data'] as Map<String, dynamic>?;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: notification.read ? 0 : 2,
-      color: notification.read ? Colors.grey[100] : Colors.white,
+      elevation: read ? 0 : 2,
+      color: read ? Colors.grey[100] : Colors.white,
       child: InkWell(
         onTap: () {
-          if (!notification.read) {
-            _markAsRead(notification.notificationId);
+          if (!read) {
+            _markAsRead(notificationId);
           }
           // Navigate to mission detail if missionId exists
-          if (notification.data?['missionId'] != null) {
+          if (notifData?['missionId'] != null) {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => MissionDetailPage(
-                  missionId: notification.data!['missionId'],
+                  missionId: notifData!['missionId'],
                 ),
               ),
             );
@@ -186,7 +217,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildNotificationIcon(notification.type),
+              _buildNotificationIcon(type),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -196,14 +227,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       children: [
                         Expanded(
                           child: Text(
-                            notification.title,
+                            title,
                             style: TextStyle(
                               fontSize: 16,
-                              fontWeight: notification.read ? FontWeight.normal : FontWeight.bold,
+                              fontWeight: read ? FontWeight.normal : FontWeight.bold,
                             ),
                           ),
                         ),
-                        if (!notification.read)
+                        if (!read)
                           Container(
                             width: 8,
                             height: 8,
@@ -216,7 +247,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      notification.message,
+                      message,
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[700],
@@ -224,7 +255,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _formatTime(notification.sentAt),
+                      _formatTime(timestamp),
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[500],
@@ -235,7 +266,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
               ),
               IconButton(
                 icon: const Icon(Icons.delete_outline, size: 20),
-                onPressed: () => _deleteNotification(notification.notificationId),
+                onPressed: () => _deleteNotification(notificationId),
                 color: Colors.grey[600],
               ),
             ],
@@ -245,40 +276,40 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
-  Widget _buildNotificationIcon(NotificationType type) {
+  Widget _buildNotificationIcon(String type) {
     IconData icon;
     Color color;
 
-    switch (type) {
-      case NotificationType.missionCreated:
+    switch (type.toUpperCase()) {
+      case 'MISSION_CREATED':
         icon = Icons.add_task;
         color = Colors.blue;
         break;
-      case NotificationType.missionAccepted:
+      case 'MISSION_ACCEPTED':
         icon = Icons.check_circle;
         color = Colors.green;
         break;
-      case NotificationType.missionRejected:
+      case 'MISSION_REJECTED':
         icon = Icons.cancel;
         color = Colors.red;
         break;
-      case NotificationType.missionStarted:
+      case 'MISSION_STARTED':
         icon = Icons.play_circle;
         color = Colors.purple;
         break;
-      case NotificationType.missionCompleted:
+      case 'MISSION_COMPLETED':
         icon = Icons.done_all;
         color = Colors.green;
         break;
-      case NotificationType.missionCancelled:
+      case 'MISSION_CANCELLED':
         icon = Icons.block;
         color = Colors.grey;
         break;
-      case NotificationType.creditReceived:
+      case 'CREDIT_RECEIVED':
         icon = Icons.monetization_on;
         color = Colors.amber;
         break;
-      case NotificationType.creditSpent:
+      case 'CREDIT_SPENT':
         icon = Icons.money_off;
         color = Colors.orange;
         break;

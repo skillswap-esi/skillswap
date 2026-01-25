@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -62,29 +63,40 @@ public class MissionEventListener {
     }
     
     private void handleMissionCreated(MissionEvent event) {
-        if (event.getHelperId() == null) {
-            log.warn("Mission created event has no helperId, cannot send notification");
+        // Get skill owner ID from metadata
+        String skillOwnerId = null;
+        if (event.getMetadata() != null && event.getMetadata().containsKey("skillOwnerId")) {
+            skillOwnerId = (String) event.getMetadata().get("skillOwnerId");
+        }
+        
+        if (skillOwnerId == null) {
+            log.warn("Mission created event has no skillOwnerId in metadata, cannot send notification");
             return;
         }
         
         Map<String, Object> data = new HashMap<>();
         data.put("missionId", event.getMissionId().toString());
         data.put("skillId", event.getSkillId().toString());
+        data.put("requesterId", event.getRequesterId());
         
-        notificationService.createNotification(
-                event.getHelperId(),
-                NotificationType.MISSION_CREATED,
-                "New Mission Request",
-                "Someone wants to learn: " + event.getMissionTitle(),
-                data
-        );
+        try {
+            notificationService.sendNotification(
+                    UUID.fromString(skillOwnerId),
+                    NotificationType.MISSION_CREATED,
+                    "New Mission Request",
+                    "Someone wants to learn: " + event.getMissionTitle(),
+                    data
+            );
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid UUID format for skillOwnerId: {}", skillOwnerId, e);
+        }
     }
     
     private void handleMissionAccepted(MissionEvent event) {
         Map<String, Object> data = new HashMap<>();
         data.put("missionId", event.getMissionId().toString());
         
-        notificationService.createNotification(
+        notificationService.sendNotification(
                 event.getRequesterId(),
                 NotificationType.MISSION_ACCEPTED,
                 "Mission Accepted!",
@@ -101,7 +113,7 @@ public class MissionEventListener {
                 ? (String) event.getMetadata().get("reason") 
                 : "No reason provided";
         
-        notificationService.createNotification(
+        notificationService.sendNotification(
                 event.getRequesterId(),
                 NotificationType.MISSION_REJECTED,
                 "Mission Rejected",
@@ -115,7 +127,7 @@ public class MissionEventListener {
         data.put("missionId", event.getMissionId().toString());
         
         // Notify both requester and helper
-        notificationService.createNotification(
+        notificationService.sendNotification(
                 event.getRequesterId(),
                 NotificationType.MISSION_STARTED,
                 "Mission Started",
@@ -123,9 +135,9 @@ public class MissionEventListener {
                 data
         );
         
-        if (event.getHelperId() != null) {
-            notificationService.createNotification(
-                    event.getHelperId(),
+        if (event.getProviderId() != null) {
+            notificationService.sendNotification(
+                    event.getProviderId(),
                     NotificationType.MISSION_STARTED,
                     "Mission Started",
                     "Mission \"" + event.getMissionTitle() + "\" has started",
@@ -140,7 +152,7 @@ public class MissionEventListener {
         data.put("credits", event.getCreditAmount().toString());
         
         // Notify requester
-        notificationService.createNotification(
+        notificationService.sendNotification(
                 event.getRequesterId(),
                 NotificationType.MISSION_COMPLETED,
                 "Mission Completed!",
@@ -148,10 +160,10 @@ public class MissionEventListener {
                 data
         );
         
-        // Notify helper about credits received
-        if (event.getHelperId() != null) {
-            notificationService.createNotification(
-                    event.getHelperId(),
+        // Notify provider about credits received
+        if (event.getProviderId() != null) {
+            notificationService.sendNotification(
+                    event.getProviderId(),
                     NotificationType.CREDIT_RECEIVED,
                     "Credits Received!",
                     "You earned " + event.getCreditAmount() + " credits for completing \"" + event.getMissionTitle() + "\"",
@@ -169,7 +181,7 @@ public class MissionEventListener {
                 : "No reason provided";
         
         // Notify both parties
-        notificationService.createNotification(
+        notificationService.sendNotification(
                 event.getRequesterId(),
                 NotificationType.MISSION_CANCELLED,
                 "Mission Cancelled",
@@ -177,9 +189,9 @@ public class MissionEventListener {
                 data
         );
         
-        if (event.getHelperId() != null) {
-            notificationService.createNotification(
-                    event.getHelperId(),
+        if (event.getProviderId() != null) {
+            notificationService.sendNotification(
+                    event.getProviderId(),
                     NotificationType.MISSION_CANCELLED,
                     "Mission Cancelled",
                     "Mission \"" + event.getMissionTitle() + "\" was cancelled. Reason: " + reason,

@@ -17,8 +17,8 @@ import java.util.UUID;
 public class MissionEvent {
     private UUID missionId;
     private UUID skillId;
-    private UUID requesterId;
-    private UUID helperId;
+    private String requesterId;
+    private String providerId;
     private MissionEventType eventType;
     private String missionTitle;
     private Integer creditAmount;
