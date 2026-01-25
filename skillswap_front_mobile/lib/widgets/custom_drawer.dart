@@ -202,15 +202,6 @@ class CustomDrawer extends StatelessWidget {
                     // TODO: Navigate to sessions page
                   },
                 ),
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.message_outlined,
-                  title: 'Messages',
-                  onTap: () {
-                    Navigator.pop(context);
-                    // TODO: Navigate to messages page
-                  },
-                ),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   child: Divider(),

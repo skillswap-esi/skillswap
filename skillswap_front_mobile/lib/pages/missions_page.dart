@@ -16,12 +16,13 @@ class _MissionsPageState extends State<MissionsPage> with SingleTickerProviderSt
   late TabController _tabController;
   List<MissionModel> _requestedMissions = [];
   List<MissionModel> _helpingMissions = [];
+  List<MissionModel> _pendingRequests = [];
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadMissions();
   }
 
@@ -59,10 +60,15 @@ class _MissionsPageState extends State<MissionsPage> with SingleTickerProviderSt
         role: 'HELPER',
       );
 
+      // Filter pending missions where user is the skill owner (provider)
+      // These are missions requesting the user's skills
+      final pending = helping.where((m) => m.status == MissionStatus.pending).toList();
+
       if (mounted) {
         setState(() {
           _requestedMissions = requested;
-          _helpingMissions = helping;
+          _helpingMissions = helping.where((m) => m.status != MissionStatus.pending).toList();
+          _pendingRequests = pending;
           _isLoading = false;
         });
       }
@@ -92,9 +98,31 @@ class _MissionsPageState extends State<MissionsPage> with SingleTickerProviderSt
           indicatorColor: Colors.white,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(text: 'Requested'),
-            Tab(text: 'Helping'),
+          tabs: [
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Requests'),
+                  if (_pendingRequests.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '${_pendingRequests.length}',
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const Tab(text: 'My Requests'),
+            const Tab(text: 'Helping'),
           ],
         ),
       ),
@@ -103,6 +131,7 @@ class _MissionsPageState extends State<MissionsPage> with SingleTickerProviderSt
           : TabBarView(
               controller: _tabController,
               children: [
+                _buildMissionsList(_pendingRequests, isPendingRequests: true),
                 _buildMissionsList(_requestedMissions, isRequester: true),
                 _buildMissionsList(_helpingMissions, isRequester: false),
               ],
@@ -110,7 +139,7 @@ class _MissionsPageState extends State<MissionsPage> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildMissionsList(List<MissionModel> missions, {required bool isRequester}) {
+  Widget _buildMissionsList(List<MissionModel> missions, {bool isRequester = false, bool isPendingRequests = false}) {
     if (missions.isEmpty) {
       return Center(
         child: Column(
@@ -123,12 +152,25 @@ class _MissionsPageState extends State<MissionsPage> with SingleTickerProviderSt
             ),
             const SizedBox(height: 16),
             Text(
-              isRequester ? 'No requested missions' : 'No helping missions',
+              isPendingRequests 
+                  ? 'No pending requests' 
+                  : (isRequester ? 'No requested missions' : 'No helping missions'),
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
               ),
             ),
+            if (isPendingRequests) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Requests for your skills will appear here',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ],
         ),
       );
@@ -141,13 +183,13 @@ class _MissionsPageState extends State<MissionsPage> with SingleTickerProviderSt
         itemCount: missions.length,
         itemBuilder: (context, index) {
           final mission = missions[index];
-          return _buildMissionCard(mission, isRequester);
+          return _buildMissionCard(mission, isRequester, isPendingRequests: isPendingRequests);
         },
       ),
     );
   }
 
-  Widget _buildMissionCard(MissionModel mission, bool isRequester) {
+  Widget _buildMissionCard(MissionModel mission, bool isRequester, {bool isPendingRequests = false}) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -193,6 +235,18 @@ class _MissionsPageState extends State<MissionsPage> with SingleTickerProviderSt
                     color: Colors.grey[600],
                   ),
                 ),
+              if (mission.description.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  mission.description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -225,18 +279,70 @@ class _MissionsPageState extends State<MissionsPage> with SingleTickerProviderSt
                     ),
                   ),
                   const Spacer(),
-                  if (isRequester && mission.helperName != null)
+                  if (isPendingRequests && mission.requesterName != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.person, size: 14, color: Colors.orange),
+                          const SizedBox(width: 4),
+                          Text(
+                            mission.requesterName!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (isRequester && mission.helperName != null)
                     Text(
                       'Helper: ${mission.helperName}',
                       style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     )
-                  else if (!isRequester && mission.requesterName != null)
+                  else if (!isRequester && !isPendingRequests && mission.requesterName != null)
                     Text(
                       'Requester: ${mission.requesterName}',
                       style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                 ],
               ),
+              if (isPendingRequests) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 18, color: Colors.orange[700]),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Tap to accept or reject this request',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.orange[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.arrow_forward, size: 18, color: Colors.orange[700]),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),

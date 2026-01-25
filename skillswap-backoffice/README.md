@@ -1,522 +1,756 @@
-# SkillSwap Backoffice - Admin Panel Documentation
+# SkillSwap Backoffice - Admin Panel
 
-## Overview
+## 📋 Overview
 
-Angular PWA for SkillSwap platform administration - manage users, skills, missions, partner places, and resolve disputes.
+SkillSwap Backoffice is an Angular-based Progressive Web Application (PWA) designed for platform administrators to manage users, skills, missions, partner places, and resolve disputes. The application provides comprehensive analytics, moderation tools, and system configuration capabilities.
 
-## Admin Features
+## 🏗️ Architecture
+
+### Application Architecture Diagram
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                   Angular Backoffice App                      │
+│                                                               │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │   Pages     │  │  Services   │  │   Guards    │         │
+│  │             │  │             │  │             │         │
+│  │ - Dashboard │  │ - Auth      │  │ - Admin     │         │
+│  │ - Users     │  │ - API       │  │ - Auth      │         │
+│  │ - Skills    │  │ - WebSocket │  │             │         │
+│  │ - Missions  │  │             │  │             │         │
+│  │ - Disputes  │  │             │  │             │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+│         │                │                 │                 │
+│         └────────────────┴─────────────────┘                 │
+│                          │                                   │
+│                          ▼                                   │
+│               ┌────────────────────┐                        │
+│               │   HTTP Interceptor │                        │
+│               │   (JWT Injection)  │                        │
+│               └────────────────────┘                        │
+└───────────────────────┬──────────────────────────────────────┘
+                        │
+                        ▼
+                ┌──────────────┐
+                │ API Gateway  │
+                │   :8080      │
+                │  (Backend)   │
+                └──────────────┘
+```
+
+### Component Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Presentation Layer                      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │Dashboard │  │  Users   │  │ Missions │  │ Disputes │   │
+│  │Component │  │Component │  │Component │  │Component │   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                         │
+┌─────────────────────────────────────────────────────────────┐
+│                      Service Layer                           │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │   Auth   │  │   API    │  │WebSocket │  │  State   │   │
+│  │ Service  │  │ Service  │  │ Service  │  │ Service  │   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                         │
+┌─────────────────────────────────────────────────────────────┐
+│                      HTTP Layer                              │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                  │
+│  │   HTTP   │  │   JWT    │  │  Error   │                  │
+│  │  Client  │  │Interceptor│  │ Handler  │                  │
+│  └──────────┘  └──────────┘  └──────────┘                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 🎯 Features
 
 ### 👤 User Management
-- View all registered users
-- Search users by name, email, phone
-- View user details:
-  - Profile information
-  - Credit balance
-  - Helper Score
-  - Phone verification status
+**Purpose**: Manage platform users and their accounts
+
+**Capabilities**:
+- View all registered users with pagination
+- Search users by name, email, phone number
+- Filter users by:
   - Registration date
-- Manage user accounts:
-  - Suspend/Activate accounts
-  - Reset passwords
-  - Adjust credit balance
-  - View transaction history
-- Export user data
+  - Phone verification status
+  - Credit balance range
+  - Helper Score range
+  - Account status (active/suspended)
+- View detailed user profile:
+  - Personal information
+  - Credit balance and transaction history
+  - Helper Score and completed missions
+  - Skills published
+  - FCM tokens
+  - Account creation date
+- User actions:
+  - Suspend/Activate account
+  - Reset password
+  - Adjust credit balance (with reason)
+  - View transaction ledger
+  - Send notification to user
+- Export user data (CSV, Excel, JSON)
+- GDPR compliance tools
 
 ### 🎯 Skill Management
+**Purpose**: Moderate and manage published skills
+
+**Capabilities**:
 - View all published skills
-- Search skills by:
-  - Title
+- Search skills by title, category, owner
+- Filter by:
   - Category
-  - Owner
-  - Location
-- Moderate skills:
-  - Approve/Reject new skills
-  - Deactivate inappropriate skills
+  - Active/Inactive status
+  - Creation date
+  - Geographic region
+- Skill moderation:
+  - Approve new skills
+  - Reject inappropriate skills
+  - Deactivate policy-violating skills
   - Edit skill details
-  - View skill statistics
-- Skill analytics:
-  - Most popular categories
-  - Geographic distribution
-  - Active vs inactive skills
+  - Delete skills
+- View skill statistics:
+  - Total views
+  - Mission requests
+  - Completion rate
+  - Average rating
+- Geographic distribution map
+- Category analytics
+- Export skills data
 
 ### 📋 Mission Management
-- View all missions
-- Filter by status:
-  - PENDING
-  - ACCEPTED
-  - IN_PROGRESS
-  - COMPLETED
-  - CANCELLED
-  - REJECTED
-  - DISPUTED
+**Purpose**: Monitor and manage mission lifecycle
+
+**Capabilities**:
+- View all missions with status
+- Filter by:
+  - Status (PENDING, ACCEPTED, IN_PROGRESS, COMPLETED, CANCELLED, REJECTED, DISPUTED)
+  - Date range
+  - Credit amount
+  - Requester/Provider
 - Mission details:
-  - Requester and provider info
+  - Requester and provider information
   - Skill details
-  - Timeline (created, accepted, completed)
+  - Timeline (created, accepted, started, completed)
   - Credit amount
   - Meeting point
   - OTP validation status
+  - Cancellation/rejection reason
+- Mission actions:
+  - Cancel mission (with refund)
+  - Mark as disputed
+  - View chat history
+  - Export mission data
 - Mission analytics:
-  - Completion rate
-  - Average duration
+  - Completion rate by category
+  - Average mission duration
   - Popular skills
-  - Revenue (credits transferred)
+  - Revenue trends (credits transferred)
+  - Geographic heat map
 
 ### 🏢 Partner Places Management
-- Add new partner places:
-  - Name
+**Purpose**: Manage verified meeting locations
+
+**Capabilities**:
+- View all partner places
+- Add new partner place:
+  - Name and description
   - Address
-  - GPS coordinates
-  - Category (café, workspace, library, etc.)
-  - Contact information
+  - GPS coordinates (map picker)
+  - Category (café, workspace, library, park, etc.)
+  - Contact information (phone, email)
   - Opening hours
-  - Amenities
+  - Amenities (WiFi, parking, accessible, etc.)
+  - Photos
 - Edit existing places
 - Activate/Deactivate places
-- View place usage statistics
+- View place usage statistics:
+  - Number of missions held
+  - User ratings
+  - Popular times
 - Map view of all partner places
 - Export places list
+- Integration with mobile app
 
 ### ⚖️ Dispute Resolution
-- View disputed missions
+**Purpose**: Resolve conflicts between users
+
+**Capabilities**:
+- View all disputed missions
 - Dispute details:
   - Mission information
   - Requester complaint
   - Provider response
-  - Chat history
   - Evidence (screenshots, messages)
+  - Chat history
+  - Timeline of events
 - Resolution actions:
-  - Refund requester
-  - Credit provider
-  - Split credits
-  - Suspend user
+  - Refund requester (100%)
+  - Credit provider (100%)
+  - Split credits (50/50 or custom)
+  - No refund (both at fault)
+  - Suspend user (if policy violation)
   - Close dispute
+- Add resolution notes
 - Dispute history and outcomes
+- Analytics:
+  - Dispute rate by category
+  - Common dispute reasons
+  - Resolution time
+  - User dispute history
 
 ### 📊 Analytics Dashboard
-- Platform statistics:
+**Purpose**: Monitor platform health and performance
+
+**Metrics**:
+- **User Metrics**:
   - Total users
-  - Active users (last 30 days)
+  - Active users (last 7/30 days)
+  - New registrations (daily/weekly/monthly)
+  - Phone verification rate
+  - Average Helper Score
+- **Skill Metrics**:
   - Total skills published
-  - Total missions completed
-  - Total credits in circulation
-- Charts and graphs:
-  - User growth over time
-  - Mission completion trends
-  - Popular skill categories
-  - Geographic heat map
-  - Revenue trends
-- Export reports (PDF, Excel)
+  - Active skills
+  - Skills by category
+  - Geographic distribution
+  - Average skills per user
+- **Mission Metrics**:
+  - Total missions
+  - Missions by status
+  - Completion rate
+  - Average mission duration
+  - Average credit cost
+  - Revenue (total credits transferred)
+- **Platform Health**:
+  - API response times
+  - Error rates
+  - Service uptime
+  - Database performance
+
+**Visualizations**:
+- Line charts (user growth, revenue trends)
+- Bar charts (missions by category, skills by region)
+- Pie charts (mission status distribution)
+- Heat maps (geographic activity)
+- Tables (top users, popular skills)
+
+**Export Options**:
+- PDF reports
+- Excel spreadsheets
+- CSV data
+- JSON data
 
 ### 🔔 Notification Management
-- Send broadcast notifications
-- Schedule announcements
-- View notification history
-- Notification templates
-- Target specific user groups
+**Purpose**: Send notifications to users
+
+**Capabilities**:
+- Send broadcast notifications:
+  - Title and message
+  - Target audience (all users, specific segment)
+  - Schedule (immediate or future)
+  - Priority (high, normal, low)
+- Notification templates:
+  - Welcome message
+  - Feature announcement
+  - Maintenance notice
+  - Policy update
+- View notification history:
+  - Sent notifications
+  - Delivery status
+  - Open rate
+  - Click-through rate
+- Target specific user groups:
+  - By location
+  - By Helper Score
+  - By credit balance
+  - By activity level
 
 ### ⚙️ System Configuration
-- Platform settings:
-  - Credit pricing
-  - OTP expiration time
-  - Search radius limits
+**Purpose**: Configure platform settings
+
+**Settings**:
+- **Credit System**:
+  - Phone verification bonus
   - Minimum credit balance
-  - Helper Score algorithm
-- Feature flags:
+  - Maximum credit per mission
+  - Credit pricing (if monetized)
+- **Mission Settings**:
+  - OTP expiration time
+  - Maximum mission duration
+  - Cancellation policy
+  - Auto-cancel timeout
+- **Search Settings**:
+  - Default search radius
+  - Maximum search radius
+  - Results per page
+- **Helper Score Algorithm**:
+  - Completion weight
+  - Rating weight
+  - Response time weight
+  - Decay factor
+- **Feature Flags**:
   - Enable/disable features
-  - Maintenance mode
   - Beta features
-- API rate limits
-- Email templates
+  - Maintenance mode
+- **API Rate Limits**:
+  - Requests per minute
+  - Burst limit
+  - IP whitelist/blacklist
+- **Email Templates**:
+  - Welcome email
+  - Password reset
+  - Mission notifications
 
-## User Scenarios for Admin
+## 🛠️ Technology Stack
 
-### A1 - Manage Partner Places
-**Actor:** Admin  
-**Objective:** Add and manage public meeting places
+### Core Technologies
+- **Angular**: 20.x (latest)
+- **TypeScript**: 5.x
+- **Node.js**: 18+
+- **npm**: 9+
 
-**Flow:**
-1. Admin logs into backoffice
-2. Navigates to "Partner Places"
-3. Clicks "Add New Place"
-4. Fills form:
-   - Name: "Café Central"
-   - Address: "123 Main St, City"
-   - Category: "Café"
-   - GPS: Click on map or enter coordinates
-   - Contact: phone, email
-   - Hours: "8:00 - 22:00"
-   - Amenities: WiFi, Parking, Accessible
-5. Uploads photos
-6. Clicks "Save"
-7. Place appears in mobile app for users
+### Angular Features
+- **Standalone Components**: No NgModules
+- **Signals**: Reactive state management
+- **Dependency Injection**: Service-based architecture
+- **Routing**: Angular Router with guards
+- **Forms**: Reactive Forms with validation
 
-**Result:** Users can select this place for missions
+### UI Framework
+- **Angular Material**: Material Design components
+- **Flex Layout**: Responsive layout system
+- **Custom Theming**: Brand colors and styles
 
-### A2 - Resolve Dispute
-**Actor:** Admin  
-**Objective:** Resolve mission dispute fairly
+### Data Visualization
+- **Chart.js**: Charts and graphs
+- **ngx-charts**: Angular chart components
+- **Google Maps API**: Geographic visualization
 
-**Flow:**
-1. Admin receives dispute notification
-2. Opens "Disputes" section
-3. Views disputed mission:
-   - Requester claims: "Service not provided"
-   - Provider claims: "Requester didn't show up"
-4. Reviews evidence:
-   - Chat messages
-   - GPS check-in data
-   - OTP validation attempts
-5. Makes decision:
-   - Option A: Refund requester (100%)
-   - Option B: Credit provider (100%)
-   - Option C: Split 50/50
-   - Option D: No refund (both at fault)
-6. Adds resolution notes
-7. Clicks "Resolve"
-8. Both users notified of decision
+### HTTP & State
+- **HttpClient**: REST API communication
+- **RxJS**: Reactive programming
+- **Observables**: Async data streams
+- **Interceptors**: JWT injection, error handling
 
-**Result:** Dispute closed, credits adjusted
+### Development Tools
+- **Angular CLI**: Project scaffolding and build
+- **TypeScript Compiler**: Type checking
+- **ESLint**: Code linting
+- **Prettier**: Code formatting
 
-### A3 - Moderate Inappropriate Skill
-**Actor:** Admin  
-**Objective:** Remove policy-violating skill
-
-**Flow:**
-1. Admin receives user report
-2. Opens "Skills" → "Reported"
-3. Views skill details
-4. Determines violation:
-   - Inappropriate content
-   - Illegal service
-   - Spam
-5. Actions:
-   - Deactivate skill
-   - Send warning to owner
-   - Suspend user (if repeat offender)
-6. Adds moderation note
-7. Clicks "Take Action"
-
-**Result:** Skill removed, user notified
-
-### A4 - Adjust User Credits
-**Actor:** Admin  
-**Objective:** Manually adjust credits for support case
-
-**Flow:**
-1. User contacts support about missing credits
-2. Admin searches user by email
-3. Views transaction history
-4. Confirms issue (payment processed but credits not added)
-5. Clicks "Adjust Credits"
-6. Enters amount: +50
-7. Adds reason: "Payment reconciliation"
-8. Clicks "Apply"
-9. User receives notification
-
-**Result:** Credits corrected, user satisfied
-
-### A5 - View Platform Analytics
-**Actor:** Admin  
-**Objective:** Monitor platform health
-
-**Flow:**
-1. Admin opens dashboard
-2. Views key metrics:
-   - 1,234 total users (+15% this month)
-   - 567 active skills
-   - 89 missions this week
-   - 4.2 average Helper Score
-3. Checks charts:
-   - User growth trending up
-   - "Informatique" most popular category
-   - Peak usage: weekends
-4. Identifies issues:
-   - Low completion rate in "Jardinage"
-   - High dispute rate in one region
-5. Takes action:
-   - Investigate regional issues
-   - Promote underused categories
-
-**Result:** Data-driven platform improvements
-
-### A6 - Send Broadcast Notification
-**Actor:** Admin  
-**Objective:** Announce new feature
-
-**Flow:**
-1. Admin opens "Notifications"
-2. Clicks "New Broadcast"
-3. Fills form:
-   - Title: "New Feature: Partner Places!"
-   - Message: "You can now meet at verified cafés and workspaces"
-   - Target: All users
-   - Schedule: Immediate
-4. Previews notification
-5. Clicks "Send"
-6. Notification sent to all users
-
-**Result:** Users informed of new feature
-
-### A7 - Export User Data (GDPR)
-**Actor:** Admin  
-**Objective:** Provide user data for GDPR request
-
-**Flow:**
-1. User requests data export
-2. Admin searches user
-3. Clicks "Export Data"
-4. System generates:
-   - Profile information
-   - Skills published
-   - Missions history
-   - Chat messages
-   - Transactions
-5. Downloads ZIP file
-6. Sends to user securely
-
-**Result:** GDPR compliance
-
-### A8 - Configure Platform Settings
-**Actor:** Admin  
-**Objective:** Update OTP expiration time
-
-**Flow:**
-1. Admin opens "Settings"
-2. Navigates to "Mission Settings"
-3. Finds "OTP Expiration"
-4. Changes from 5 minutes to 10 minutes
-5. Adds change reason
-6. Clicks "Save"
-7. System updates configuration
-8. All services reload settings
-
-**Result:** OTP now valid for 10 minutes
-
-## Technical Stack
-
-### Frontend
-- **Framework:** Angular 17+
-- **UI Library:** Angular Material
-- **Charts:** Chart.js / ngx-charts
-- **Maps:** Google Maps API
-- **State Management:** RxJS
-- **Forms:** Reactive Forms
-
-### Backend Integration
-- **API:** REST via API Gateway (port 8080)
-- **Authentication:** JWT tokens
-- **Real-time:** WebSocket for live updates
-- **File Upload:** Multipart form data
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 src/
 ├── app/
-│   ├── core/
+│   ├── core/                          # Core services and guards
 │   │   ├── services/
-│   │   │   ├── auth.service.ts
-│   │   │   ├── api.service.ts
-│   │   │   └── websocket.service.ts
+│   │   │   ├── auth.service.ts       # Authentication service
+│   │   │   ├── api.service.ts        # HTTP client wrapper
+│   │   │   └── websocket.service.ts  # Real-time updates
 │   │   ├── guards/
-│   │   │   └── admin.guard.ts
+│   │   │   ├── auth.guard.ts         # Route protection
+│   │   │   └── admin.guard.ts        # Admin role check
 │   │   └── interceptors/
-│   │       └── jwt.interceptor.ts
-│   ├── features/
+│   │       ├── jwt.interceptor.ts    # JWT token injection
+│   │       └── error.interceptor.ts  # Error handling
+│   │
+│   ├── pages/                         # Feature pages
+│   │   ├── login/
+│   │   │   └── login.component.ts    # Admin login
 │   │   ├── dashboard/
+│   │   │   └── dashboard.component.ts # Analytics dashboard
 │   │   ├── users/
+│   │   │   └── users.component.ts    # User management
 │   │   ├── skills/
+│   │   │   └── skills.component.ts   # Skill moderation
 │   │   ├── missions/
+│   │   │   └── missions.component.ts # Mission monitoring
 │   │   ├── partner-places/
+│   │   │   └── partner-places.component.ts # Places management
 │   │   ├── disputes/
+│   │   │   └── disputes.component.ts # Dispute resolution
 │   │   ├── notifications/
-│   │   └── settings/
-│   ├── shared/
+│   │   │   └── notifications.component.ts # Notification center
+│   │   ├── settings/
+│   │   │   └── settings.component.ts # System configuration
+│   │   └── overview/
+│   │       └── overview.component.ts # Platform overview
+│   │
+│   ├── shared/                        # Shared components
 │   │   ├── components/
+│   │   │   ├── header/
+│   │   │   ├── sidebar/
+│   │   │   ├── table/
+│   │   │   ├── chart/
+│   │   │   └── dialog/
 │   │   ├── pipes/
+│   │   │   ├── date-format.pipe.ts
+│   │   │   └── currency.pipe.ts
 │   │   └── models/
-│   └── app.routes.ts
-├── assets/
-└── environments/
+│   │       ├── user.model.ts
+│   │       ├── skill.model.ts
+│   │       ├── mission.model.ts
+│   │       └── dispute.model.ts
+│   │
+│   ├── app.ts                         # Root component
+│   ├── app.html                       # Root template
+│   ├── app.css                        # Root styles
+│   ├── app.routes.ts                  # Route configuration
+│   └── app.config.ts                  # App configuration
+│
+├── assets/                            # Static assets
+│   ├── images/
+│   ├── icons/
+│   └── styles/
+│
+├── environments/                      # Environment configs
+│   ├── environment.ts                # Development
+│   └── environment.prod.ts           # Production
+│
+├── index.html                         # HTML entry point
+├── main.ts                            # TypeScript entry point
+├── styles.css                         # Global styles
+└── server.ts                          # SSR server (optional)
 ```
 
-## API Endpoints (Admin)
+## 🔄 Data Flow
 
-### Users
+### Authentication Flow
 ```
-GET    /api/admin/users
-GET    /api/admin/users/{id}
-PUT    /api/admin/users/{id}/suspend
-PUT    /api/admin/users/{id}/activate
-POST   /api/admin/users/{id}/credits
-GET    /api/admin/users/{id}/transactions
-GET    /api/admin/users/export
-```
-
-### Skills
-```
-GET    /api/admin/skills
-GET    /api/admin/skills/reported
-PUT    /api/admin/skills/{id}/moderate
-DELETE /api/admin/skills/{id}
-GET    /api/admin/skills/analytics
+1. Admin enters credentials
+2. AuthService calls /api/auth/admin/login
+3. Backend validates admin role
+4. JWT token returned
+5. Token stored in localStorage
+6. JwtInterceptor adds token to all requests
+7. AuthGuard protects admin routes
+8. Navigate to Dashboard
 ```
 
-### Missions
+### User Management Flow
 ```
-GET    /api/admin/missions
-GET    /api/admin/missions/{id}
-GET    /api/admin/missions/analytics
-GET    /api/admin/missions/export
-```
-
-### Partner Places
-```
-GET    /api/admin/partner-places
-POST   /api/admin/partner-places
-PUT    /api/admin/partner-places/{id}
-DELETE /api/admin/partner-places/{id}
-GET    /api/admin/partner-places/{id}/stats
+1. Admin opens Users page
+2. ApiService calls /api/admin/users
+3. Backend returns paginated user list
+4. Display users in table
+5. Admin clicks "Suspend User"
+6. Confirmation dialog shown
+7. ApiService calls /api/admin/users/{id}/suspend
+8. Backend updates user status
+9. Table refreshes
+10. Success notification shown
 ```
 
-### Disputes
+### Dispute Resolution Flow
 ```
-GET    /api/admin/disputes
-GET    /api/admin/disputes/{id}
-POST   /api/admin/disputes/{id}/resolve
-GET    /api/admin/disputes/stats
-```
-
-### Notifications
-```
-POST   /api/admin/notifications/broadcast
-GET    /api/admin/notifications/history
-POST   /api/admin/notifications/schedule
-```
-
-### Analytics
-```
-GET    /api/admin/analytics/dashboard
-GET    /api/admin/analytics/users
-GET    /api/admin/analytics/missions
-GET    /api/admin/analytics/revenue
-GET    /api/admin/analytics/export
+1. Admin opens Disputes page
+2. ApiService calls /api/admin/disputes
+3. Display disputed missions
+4. Admin clicks dispute to view details
+5. Review evidence and chat history
+6. Admin selects resolution action
+7. ApiService calls /api/admin/disputes/{id}/resolve
+8. Backend processes resolution:
+   - Adjust credits
+   - Update mission status
+   - Send notifications
+9. Dispute marked as resolved
+10. Analytics updated
 ```
 
-### Settings
-```
-GET    /api/admin/settings
-PUT    /api/admin/settings
-GET    /api/admin/settings/feature-flags
-PUT    /api/admin/settings/feature-flags
+## 🔐 Security
+
+### Authentication
+- **Admin Login**: Separate endpoint from user login
+- **Role-Based Access**: Only users with `ROLE_ADMIN` can access
+- **JWT Tokens**: Secure token-based authentication
+- **Token Expiration**: 1-hour session timeout
+- **Refresh Tokens**: Automatic token refresh
+
+### Authorization
+- **Route Guards**: Protect all admin routes
+- **Role Validation**: Backend validates admin role on every request
+- **Action Logging**: All admin actions logged with timestamp and IP
+- **Audit Trail**: Complete history of admin operations
+
+### Data Protection
+- **HTTPS Only**: All communication over TLS
+- **CORS Configuration**: Restricted to admin domain
+- **Input Validation**: Client and server-side validation
+- **XSS Protection**: Angular's built-in sanitization
+- **CSRF Protection**: Token-based CSRF prevention
+
+### Two-Factor Authentication (Recommended)
+- **TOTP**: Time-based one-time passwords
+- **SMS**: Backup authentication method
+- **Recovery Codes**: Emergency access
+
+## 🚀 Setup & Installation
+
+### Prerequisites
+- Node.js 18+
+- npm 9+
+- Angular CLI 20+
+- Backend services running
+
+### 1. Install Angular CLI
+```bash
+npm install -g @angular/cli@20
 ```
 
-## Setup & Development
-
-### 1. Install Dependencies
+### 2. Install Dependencies
 ```bash
 cd skillswap-backoffice
 npm install
 ```
 
-### 2. Configure Environment
+### 3. Configure Environment
+
 Edit `src/environments/environment.ts`:
+
 ```typescript
 export const environment = {
   production: false,
   apiUrl: 'http://localhost:8080/api',
-  googleMapsApiKey: 'YOUR_API_KEY'
+  googleMapsApiKey: 'YOUR_GOOGLE_MAPS_API_KEY',
+  wsUrl: 'ws://localhost:8080/ws'
 };
 ```
 
-### 3. Run Development Server
+Edit `src/environments/environment.prod.ts`:
+
+```typescript
+export const environment = {
+  production: true,
+  apiUrl: 'https://api.skillswap.com/api',
+  googleMapsApiKey: 'YOUR_GOOGLE_MAPS_API_KEY',
+  wsUrl: 'wss://api.skillswap.com/ws'
+};
+```
+
+### 4. Run Development Server
 ```bash
 ng serve
 ```
+
 Navigate to `http://localhost:4200`
 
-### 4. Build for Production
+### 5. Build for Production
 ```bash
 ng build --configuration production
 ```
 
-## Security
+Output in `dist/skillswap-backoffice/`
 
-### Admin Authentication
-- Separate admin login endpoint
-- Role-based access control (RBAC)
-- Admin users have `ROLE_ADMIN`
-- JWT tokens with admin claims
-- Session timeout: 1 hour
+## 🧪 Testing
 
-### Authorization
-- All admin endpoints require `ROLE_ADMIN`
-- Audit log for all admin actions
-- IP whitelist for admin access (optional)
-- Two-factor authentication (2FA) recommended
+### Unit Tests
+```bash
+# Run unit tests
+ng test
 
-### Data Protection
-- Sensitive data masked in UI
-- Secure file uploads
-- HTTPS only in production
-- CORS configured for admin domain
+# Run with coverage
+ng test --code-coverage
 
-## Monitoring
+# Run in headless mode
+ng test --browsers=ChromeHeadless
+```
 
-### Admin Activity Log
-- Track all admin actions:
-  - User modifications
-  - Skill moderation
-  - Dispute resolutions
-  - Credit adjustments
-  - Setting changes
-- Log includes:
-  - Admin user ID
-  - Action type
-  - Timestamp
-  - IP address
-  - Changes made
+### End-to-End Tests
+```bash
+# Run e2e tests
+ng e2e
+```
 
-### System Health
-- Service status indicators
-- API response times
-- Error rates
-- Database connection status
-- Kafka/Redis status
+### Linting
+```bash
+# Run ESLint
+ng lint
 
-## Future Features
+# Fix linting errors
+ng lint --fix
+```
 
-### Phase 1
+## 🐛 Troubleshooting
+
+### Cannot Connect to Backend
+**Problem**: API calls fail with CORS error
+
+**Solutions**:
+1. Verify backend is running
+2. Check API URL in environment file
+3. Ensure CORS is configured for admin domain
+4. Check browser console for errors
+
+### Authentication Fails
+**Problem**: Admin login returns 401
+
+**Solutions**:
+1. Verify admin user exists in database
+2. Check user has `ROLE_ADMIN` role
+3. Verify JWT secret matches backend
+4. Check token expiration time
+
+### Charts Not Displaying
+**Problem**: Dashboard charts are blank
+
+**Solutions**:
+1. Check Chart.js is installed
+2. Verify API returns data in correct format
+3. Check browser console for errors
+4. Ensure data is not empty
+
+## 📊 Performance Optimization
+
+### Lazy Loading
+- Load feature modules on demand
+- Reduce initial bundle size
+- Faster first page load
+
+### Change Detection
+- Use OnPush strategy
+- Minimize unnecessary re-renders
+- Optimize component tree
+
+### HTTP Optimization
+- Cache API responses
+- Implement pagination
+- Use HTTP interceptors
+- Debounce search queries
+
+### Build Optimization
+```bash
+# Production build with optimizations
+ng build --configuration production --optimization --build-optimizer
+```
+
+## 🚢 Deployment
+
+### Build for Production
+```bash
+ng build --configuration production
+```
+
+### Deploy to Nginx
+```nginx
+server {
+    listen 80;
+    server_name admin.skillswap.com;
+    
+    root /var/www/skillswap-backoffice;
+    index index.html;
+    
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+    
+    location /api {
+        proxy_pass http://backend:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+### Deploy to Firebase Hosting
+```bash
+# Install Firebase CLI
+npm install -g firebase-tools
+
+# Login to Firebase
+firebase login
+
+# Initialize Firebase
+firebase init hosting
+
+# Deploy
+firebase deploy --only hosting
+```
+
+### Deploy to AWS S3 + CloudFront
+```bash
+# Build
+ng build --configuration production
+
+# Upload to S3
+aws s3 sync dist/skillswap-backoffice/ s3://admin.skillswap.com
+
+# Invalidate CloudFront cache
+aws cloudfront create-invalidation --distribution-id YOUR_DIST_ID --paths "/*"
+```
+
+## 📈 Future Enhancements
+
+### Phase 1 (Q1 2026)
 - [ ] Advanced analytics with ML insights
 - [ ] Automated moderation with AI
 - [ ] Bulk operations (mass email, credit adjustments)
 - [ ] Custom report builder
+- [ ] Real-time dashboard updates
 
-### Phase 2
-- [ ] Mobile admin app
+### Phase 2 (Q2 2026)
+- [ ] Mobile admin app (Flutter)
 - [ ] Real-time chat support
 - [ ] Automated dispute resolution
 - [ ] A/B testing framework
+- [ ] Advanced fraud detection
 
-### Phase 3
+### Phase 3 (Q3 2026)
 - [ ] Multi-language admin panel
 - [ ] White-label configuration
 - [ ] API marketplace management
-- [ ] Advanced fraud detection
+- [ ] Advanced user segmentation
+- [ ] Predictive analytics
 
-## Support
+## 📚 Resources
 
-For admin issues:
-1. Check admin user has `ROLE_ADMIN`
-2. Verify JWT token is valid
-3. Check API Gateway logs
-4. Review audit logs
-5. Contact system administrator
+### Documentation
+- [Angular Documentation](https://angular.io/docs)
+- [Angular Material](https://material.angular.io)
+- [RxJS Documentation](https://rxjs.dev)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs)
+
+### Tutorials
+- [Angular Tutorial](https://angular.io/tutorial)
+- [Angular Material Getting Started](https://material.angular.io/guide/getting-started)
+- [RxJS Operators](https://rxjs.dev/guide/operators)
+
+## 🤝 Contributing
+
+### Code Style
+- Follow [Angular Style Guide](https://angular.io/guide/styleguide)
+- Use TypeScript strict mode
+- Write meaningful component names
+- Add JSDoc comments for public APIs
+
+### Git Workflow
+```bash
+# Create feature branch
+git checkout -b feature/new-feature
+
+# Commit changes
+git add .
+git commit -m "feat: add new feature"
+
+# Push to remote
+git push origin feature/new-feature
+```
+
+## 📄 License
+
+Private Project - All Rights Reserved
 
 ---
 
-**Version:** 1.0.0  
-**Framework:** Angular 17+  
-**Access:** Admin users only  
-**Status:** In Development
+**Version**: 1.0.0  
+**Framework**: Angular 20+  
+**Access**: Admin users only  
+**Status**: In Development  
+**Last Updated**: January 2026

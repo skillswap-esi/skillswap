@@ -44,6 +44,8 @@ class ChatThread {
   final String threadId;
   final List<String> participants;
   final String skillId;
+  final String? skillTitle;
+  final String? skillOwnerName;
   final DateTime createdAt;
   final DateTime lastMessageAt;
   final String? lastMessage;
@@ -52,6 +54,8 @@ class ChatThread {
     required this.threadId,
     required this.participants,
     required this.skillId,
+    this.skillTitle,
+    this.skillOwnerName,
     required this.createdAt,
     required this.lastMessageAt,
     this.lastMessage,
@@ -62,6 +66,8 @@ class ChatThread {
       threadId: data['threadId'] ?? '',
       participants: List<String>.from(data['participants'] ?? []),
       skillId: data['skillId'] ?? '',
+      skillTitle: data['skillTitle'],
+      skillOwnerName: data['skillOwnerName'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       lastMessageAt: (data['lastMessageAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       lastMessage: data['lastMessage'],
@@ -73,6 +79,8 @@ class ChatThread {
       'threadId': threadId,
       'participants': participants,
       'skillId': skillId,
+      if (skillTitle != null) 'skillTitle': skillTitle,
+      if (skillOwnerName != null) 'skillOwnerName': skillOwnerName,
       'createdAt': Timestamp.fromDate(createdAt),
       'lastMessageAt': Timestamp.fromDate(lastMessageAt),
       'lastMessage': lastMessage,

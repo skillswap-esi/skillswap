@@ -8,6 +8,9 @@ import '../providers/user_provider.dart';
 import '../pages/my_skills_page.dart';
 import '../pages/explore_skills_page.dart';
 import '../pages/create_skill_page.dart';
+import '../pages/chats_list_page.dart';
+import '../pages/simple_profile_page.dart';
+import '../pages/map_explorer_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -22,8 +25,16 @@ class _HomePageState extends State<HomePage> {
 
   final List<Widget> _pages = [
     const HomeContent(),
-    const ExplorePage(),
-    const ProfilePage(),
+    const MapExplorerPage(),
+    const ChatsListPage(),
+    const SimpleProfilePage(),
+  ];
+
+  final List<String> _titles = [
+    'SkillSwap',
+    'Explore',
+    'Chats',
+    'Profile',
   ];
 
   void _onItemTapped(int index) {
@@ -51,25 +62,27 @@ class _HomePageState extends State<HomePage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    padding: const EdgeInsets.all(6),
-                    child: ClipOval(
-                      child: Image.asset(
-                        AppAssets.logo,
-                        fit: BoxFit.cover,
+                  if (_selectedIndex == 0) ...[
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      padding: const EdgeInsets.all(6),
+                      child: ClipOval(
+                        child: Image.asset(
+                          AppAssets.logo,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  const Text(
-                    'SkillSwap',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    const SizedBox(width: 10),
+                  ],
+                  Text(
+                    _titles[_selectedIndex],
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -142,12 +155,18 @@ class _HomePageState extends State<HomePage> {
                   label: 'Explore',
                 ),
                 BottomNavigationBarItem(
+                  icon: Icon(Icons.chat_bubble_outline),
+                  activeIcon: Icon(Icons.chat_bubble),
+                  label: 'Chats',
+                ),
+                BottomNavigationBarItem(
                   icon: Icon(Icons.person_outlined),
                   activeIcon: Icon(Icons.person),
                   label: 'Profile',
                 ),
               ],
               currentIndex: _selectedIndex,
+              type: BottomNavigationBarType.fixed,
               selectedItemColor: AppColors.primary,
               unselectedItemColor: AppColors.textSecondary,
               backgroundColor: Colors.white,
@@ -574,27 +593,6 @@ class _HomeContentState extends State<HomeContent> {
           Icon(
             Icons.chevron_right,
             color: AppColors.textSecondary,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ExplorePage extends StatelessWidget {
-  const ExplorePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.explore, size: 80, color: AppColors.primary.withOpacity(0.3)),
-          const SizedBox(height: 16),
-          const Text(
-            'Explore Page',
-            style: TextStyle(fontSize: 24, color: AppColors.textSecondary),
           ),
         ],
       ),

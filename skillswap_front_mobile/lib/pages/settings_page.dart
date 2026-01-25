@@ -5,6 +5,7 @@ import 'login_page.dart';
 import 'edit_profile_page.dart';
 import 'change_password_page.dart';
 import 'delete_account_page.dart';
+import 'phone_verification_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -32,6 +33,26 @@ class SettingsPage extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const EditProfilePage()),
+                  );
+                },
+              ),
+              ValueListenableBuilder(
+                valueListenable: authService,
+                builder: (context, auth, _) {
+                  final isVerified = auth.isPhoneVerified;
+                  return _buildSettingTile(
+                    icon: isVerified ? Icons.verified : Icons.phone_outlined,
+                    title: 'Phone Verification',
+                    subtitle: isVerified 
+                        ? 'Phone verified ✓' 
+                        : 'Verify phone to earn bonus credits',
+                    onTap: isVerified ? null : () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const PhoneVerificationPage()),
+                      );
+                    },
+                    isVerified: isVerified,
                   );
                 },
               ),
@@ -198,10 +219,11 @@ class SettingsPage extends StatelessWidget {
     required IconData icon,
     required String title,
     required String subtitle,
-    required VoidCallback onTap,
+    VoidCallback? onTap,
     bool isDestructive = false,
+    bool isVerified = false,
   }) {
-    final color = isDestructive ? AppColors.accent : AppColors.primary;
+    final color = isDestructive ? AppColors.accent : (isVerified ? Colors.green : AppColors.primary);
     
     return ListTile(
       leading: Container(
@@ -222,16 +244,17 @@ class SettingsPage extends StatelessWidget {
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
-          color: AppColors.textSecondary,
+          color: isVerified ? Colors.green : AppColors.textSecondary,
         ),
       ),
-      trailing: const Icon(
+      trailing: onTap != null ? const Icon(
         Icons.chevron_right,
         color: AppColors.textSecondary,
-      ),
+      ) : null,
       onTap: onTap,
+      enabled: onTap != null,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     );
   }

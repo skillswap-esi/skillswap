@@ -115,113 +115,121 @@ class _ExploreSkillsPageState extends State<ExploreSkillsPage> {
   void _showFilterDialog() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Filter Skills',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 24),
-              
-              // Category Filter
-              const Text(
-                'Category',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  FilterChip(
-                    label: const Text('All'),
-                    selected: _selectedCategory == null,
-                    onSelected: (selected) {
-                      setModalState(() => _selectedCategory = null);
-                      setState(() => _selectedCategory = null);
-                    },
+        builder: (context, setModalState) => SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 24,
+              right: 24,
+              top: 24,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Filter Skills',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
-                  ...SkillCategory.values.map((category) {
-                    return FilterChip(
-                      label: Text('${category.emoji} ${category.label}'),
-                      selected: _selectedCategory == category,
-                      onSelected: (selected) {
-                        setModalState(() {
-                          _selectedCategory = selected ? category : null;
-                        });
-                        setState(() {
-                          _selectedCategory = selected ? category : null;
-                        });
-                      },
-                    );
-                  }),
-                ],
-              ),
-              const SizedBox(height: 24),
-              
-              // Radius Filter
-              const Text(
-                'Search Radius',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
                 ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Slider(
-                      value: _radiusKm,
-                      min: 1,
-                      max: 50,
-                      divisions: 49,
-                      label: '${_radiusKm.toInt()} km',
-                      onChanged: (value) {
-                        setModalState(() => _radiusKm = value);
-                        setState(() => _radiusKm = value);
+                const SizedBox(height: 24),
+                
+                // Category Filter
+                const Text(
+                  'Category',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilterChip(
+                      label: const Text('All'),
+                      selected: _selectedCategory == null,
+                      onSelected: (selected) {
+                        setModalState(() => _selectedCategory = null);
+                        setState(() => _selectedCategory = null);
                       },
                     ),
-                  ),
-                  Text(
-                    '${_radiusKm.toInt()} km',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              
-              // Apply Button
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _loadSkills();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    ...SkillCategory.values.map((category) {
+                      return FilterChip(
+                        label: Text('${category.emoji} ${category.label}'),
+                        selected: _selectedCategory == category,
+                        onSelected: (selected) {
+                          setModalState(() {
+                            _selectedCategory = selected ? category : null;
+                          });
+                          setState(() {
+                            _selectedCategory = selected ? category : null;
+                          });
+                        },
+                      );
+                    }),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                // Radius Filter
+                const Text(
+                  'Search Radius',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                child: const Text('Apply Filters'),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Slider(
+                        value: _radiusKm,
+                        min: 1,
+                        max: 50,
+                        divisions: 49,
+                        label: '${_radiusKm.toInt()} km',
+                        onChanged: (value) {
+                          setModalState(() => _radiusKm = value);
+                          setState(() => _radiusKm = value);
+                        },
+                      ),
+                    ),
+                    Text(
+                      '${_radiusKm.toInt()} km',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                // Apply Button
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _loadSkills();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Apply Filters'),
+                ),
+              ],
+            ),
           ),
         ),
       ),

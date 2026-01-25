@@ -14,11 +14,15 @@ class ChatService {
     required String userId1,
     required String userId2,
     required String skillId,
+    String? skillTitle,
+    String? skillOwnerName,
   }) async {
     print('[ChatService] === GET OR CREATE CHAT THREAD ===');
     print('[ChatService] Backend userId1: $userId1');
     print('[ChatService] Backend userId2: $userId2');
     print('[ChatService] skillId: $skillId');
+    print('[ChatService] skillTitle: $skillTitle');
+    print('[ChatService] skillOwnerName: $skillOwnerName');
     
     // Check if user is authenticated
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -35,19 +39,21 @@ class ChatService {
 
     try {
       final threadRef = _firestore.collection('chat_threads').doc(threadId);
+      
+      // Check if thread exists
       final threadDoc = await threadRef.get();
       print('[ChatService] Thread exists: ${threadDoc.exists}');
 
       if (!threadDoc.exists) {
         print('[ChatService] Creating new thread...');
         // Create new thread with Firebase UID in participants for security rules
-        // Note: We store the current user's Firebase UID, but we can't get the other user's Firebase UID
-        // So we'll use a different approach - store Firebase UIDs separately
         await threadRef.set({
           'threadId': threadId,
           'participants': [userId1, userId2], // Backend UUIDs for app logic
           'firebaseUids': [currentUser.uid], // Firebase UIDs for security rules (will be updated when other user joins)
           'skillId': skillId,
+          'skillTitle': skillTitle,
+          'skillOwnerName': skillOwnerName,
           'createdAt': FieldValue.serverTimestamp(),
           'lastMessageAt': FieldValue.serverTimestamp(),
           'lastMessage': null,
@@ -55,13 +61,29 @@ class ChatService {
         print('[ChatService] Thread created successfully');
       } else {
         // Thread exists, add current user's Firebase UID if not already there
-        final data = threadDoc.data();
+        final data = threadDoc.data() as Map<String, dynamic>?;
         final firebaseUids = List<String>.from(data?['firebaseUids'] ?? []);
         if (!firebaseUids.contains(currentUser.uid)) {
           await threadRef.update({
             'firebaseUids': FieldValue.arrayUnion([currentUser.uid]),
           });
           print('[ChatService] Added Firebase UID to existing thread');
+        }
+        
+        // Update skill info if provided and not already set
+        if ((skillTitle != null && data?['skillTitle'] == null) ||
+            (skillOwnerName != null && data?['skillOwnerName'] == null)) {
+          final updates = <String, dynamic>{};
+          if (skillTitle != null && data?['skillTitle'] == null) {
+            updates['skillTitle'] = skillTitle;
+          }
+          if (skillOwnerName != null && data?['skillOwnerName'] == null) {
+            updates['skillOwnerName'] = skillOwnerName;
+          }
+          if (updates.isNotEmpty) {
+            await threadRef.update(updates);
+            print('[ChatService] Updated thread with skill info');
+          }
         }
       }
 
@@ -188,20 +210,41 @@ class ChatService {
     }
   }
 
-  // Get user's chat threads
-  Stream<List<ChatThread>> getUserChatThreads(String userId) {
-    print('[ChatService] Getting chat threads for user: $userId');
+  // Get user's chat threads using Firebase UID
+  Stream<List<ChatThread>> getUserChatThreads(String backendUserId) {
+    print('[ChatService] Getting chat threads for backend user: $backendUserId');
     
+    // Get current Firebase user
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      print('[ChatService] ERROR: No Firebase user');
+      throw Exception('User not authenticated');
+    }
+    
+    final firebaseUid = currentUser.uid;
+    print('[ChatService] Firebase UID: $firebaseUid');
+    
+    // Query by firebaseUids (for security rules) but filter by participants (for app logic)
     return _firestore
         .collection('chat_threads')
-        .where('participants', arrayContains: userId)
+        .where('firebaseUids', arrayContains: firebaseUid)
         .orderBy('lastMessageAt', descending: true)
         .snapshots()
         .map((snapshot) {
       print('[ChatService] Found ${snapshot.docs.length} threads');
-      return snapshot.docs.map((doc) {
-        return ChatThread.fromFirestore(doc.data());
-      }).toList();
+      
+      // Filter threads where the backend user is a participant
+      final filteredThreads = snapshot.docs
+          .where((doc) {
+            final data = doc.data();
+            final participants = List<String>.from(data['participants'] ?? []);
+            return participants.contains(backendUserId);
+          })
+          .map((doc) => ChatThread.fromFirestore(doc.data()))
+          .toList();
+      
+      print('[ChatService] Filtered to ${filteredThreads.length} threads for backend user');
+      return filteredThreads;
     }).handleError((e) {
       print('[ChatService] ERROR getting threads: $e');
       if (e.toString().contains('permission-denied') || 

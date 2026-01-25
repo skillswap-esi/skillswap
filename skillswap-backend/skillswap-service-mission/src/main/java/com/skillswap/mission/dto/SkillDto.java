@@ -11,7 +11,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class SkillDto {
     private UUID skillId;
-    private UUID ownerId;
+    private String ownerId;  // Changed from UUID to String to match Skill Service
     private String title;
     private String description;
     private String category;

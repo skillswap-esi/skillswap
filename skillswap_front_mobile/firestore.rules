@@ -7,39 +7,54 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    // Helper function to check if user is participant in a chat thread
-    function isParticipant(threadId) {
+    // Helper function to check if user is participant (for existing threads)
+    function isParticipantInExistingThread(threadId) {
       return isAuthenticated() && 
+             exists(/databases/$(database)/documents/chat_threads/$(threadId)) &&
              request.auth.uid in get(/databases/$(database)/documents/chat_threads/$(threadId)).data.firebaseUids;
     }
     
     // Chat threads collection
     match /chat_threads/{threadId} {
-      // Allow authenticated users to read threads they're part of
+      // Allow authenticated users to read threads where they are a participant (by firebaseUids)
+      // Also allow reading non-existent docs (for checking if thread exists)
       allow read: if isAuthenticated() && 
-                     request.auth.uid in resource.data.firebaseUids;
+                     (resource == null || 
+                      (resource.data.firebaseUids != null && request.auth.uid in resource.data.firebaseUids));
+      
+      // Allow list/query operations for authenticated users on their own threads
+      allow list: if isAuthenticated();
       
       // Allow authenticated users to create new threads
       allow create: if isAuthenticated() && 
+                       request.resource.data.firebaseUids != null &&
                        request.auth.uid in request.resource.data.firebaseUids;
       
       // Allow participants to update thread (for lastMessage, adding firebaseUids, etc.)
       allow update: if isAuthenticated() && 
-                       (request.auth.uid in resource.data.firebaseUids ||
-                        request.auth.uid in request.resource.data.firebaseUids);
+                       ((resource.data.firebaseUids != null && request.auth.uid in resource.data.firebaseUids) ||
+                        (request.resource.data.firebaseUids != null && request.auth.uid in request.resource.data.firebaseUids));
       
       // Messages subcollection
       match /messages/{messageId} {
-        // Allow participants to read messages
-        allow read: if isParticipant(threadId);
+        // Allow participants to read messages (check parent thread)
+        allow read: if isAuthenticated() && 
+                       isParticipantInExistingThread(threadId);
         
         // Allow participants to create messages
-        allow create: if isParticipant(threadId) && 
+        allow create: if isAuthenticated() && 
+                         isParticipantInExistingThread(threadId) &&
                          request.auth.uid == request.resource.data.senderId;
         
         // Allow participants to update messages (for read status)
-        allow update: if isParticipant(threadId);
+        allow update: if isAuthenticated() && 
+                         isParticipantInExistingThread(threadId);
       }
+    }
+    
+    // FCM tokens collection (for notifications)
+    match /fcm_tokens/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
     
     // Notifications collection (stored by mobile app)

@@ -4,9 +4,11 @@ import '../models/skill_model.dart';
 import '../models/mission_model.dart';
 import '../services/skill_service.dart';
 import '../services/mission_service.dart';
+import '../services/chat_service.dart';
 import '../auth_service.dart';
 import 'package:intl/intl.dart';
 import 'create_mission_page.dart';
+import 'chat_page.dart';
 
 class SkillDetailPage extends StatefulWidget {
   final SkillModel skill;
@@ -139,6 +141,57 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error deleting skill: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _openChatWithOwner() async {
+    try {
+      final userId = authService.value.userProfile?.userId;
+      if (userId == null) {
+        throw Exception('User profile not loaded');
+      }
+
+      if (_skill.ownerId == null) {
+        throw Exception('Skill owner not found');
+      }
+
+      print('[SkillDetailPage] Opening chat with skill owner');
+      print('[SkillDetailPage] Current user: $userId');
+      print('[SkillDetailPage] Skill owner: ${_skill.ownerId}');
+      print('[SkillDetailPage] Skill ID: ${_skill.skillId}');
+
+      // Get or create chat thread with skill info
+      final threadId = await chatService.getOrCreateChatThread(
+        userId1: userId,
+        userId2: _skill.ownerId!,
+        skillId: _skill.skillId!,
+        skillTitle: _skill.title,
+        skillOwnerName: _skill.ownerName,
+      );
+
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatPage(
+              threadId: threadId,
+              otherUserId: _skill.ownerId!,
+              otherUserName: _skill.ownerName ?? 'Skill Owner',
+              skillTitle: _skill.title,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('[SkillDetailPage] Error opening chat: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening chat: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -467,25 +520,48 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                     ),
                   ),
 
-                  // Request Mission Button (for non-owners)
+                  // Action Buttons (for non-owners)
                   if (!_isOwner && _skill.active)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _showRequestMissionDialog,
-                          icon: const Icon(Icons.send),
-                          label: const Text('Request Mission'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                      child: Column(
+                        children: [
+                          // Chat Button
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: _openChatWithOwner,
+                              icon: const Icon(Icons.chat_bubble_outline),
+                              label: const Text('Chat with Owner'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                side: BorderSide(color: AppColors.primary),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          const SizedBox(height: 12),
+                          // Request Mission Button
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _showRequestMissionDialog,
+                              icon: const Icon(Icons.send),
+                              label: const Text('Request Mission'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   const SizedBox(height: 24),

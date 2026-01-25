@@ -117,9 +117,36 @@ public class MissionService {
                 ? missionRepository.findByRequesterIdAndStatus(userId, status)
                 : missionRepository.findByRequesterId(userId);
         } else if (role != null && role.equalsIgnoreCase("HELPER")) {
+            // Get missions where user is provider (accepted missions)
             missions = status != null
                 ? missionRepository.findByProviderIdAndStatus(userId, status)
                 : missionRepository.findByProviderId(userId);
+            
+            // Also get PENDING missions for skills owned by this user
+            try {
+                List<SkillDto> userSkills = skillClient.getSkillsByOwner(userId);
+                List<UUID> skillIds = userSkills.stream()
+                        .map(SkillDto::getSkillId)
+                        .collect(Collectors.toList());
+                
+                // Get all PENDING missions for these skills
+                for (UUID skillId : skillIds) {
+                    List<Mission> pendingMissions = missionRepository.findBySkillIdAndStatus(skillId, MissionStatus.PENDING);
+                    missions.addAll(pendingMissions);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch skills for user: {}", userId, e);
+            }
+            
+            // Filter by status if specified
+            if (status != null) {
+                missions = missions.stream()
+                        .filter(m -> m.getStatus() == status)
+                        .distinct()
+                        .collect(Collectors.toList());
+            } else {
+                missions = missions.stream().distinct().collect(Collectors.toList());
+            }
         } else {
             // Get all missions where user is either requester or provider
             List<Mission> asRequester = missionRepository.findByRequesterId(userId);
@@ -163,11 +190,19 @@ public class MissionService {
         SkillDto skill;
         try {
             skill = skillClient.getSkillById(mission.getSkillId());
+            log.info("Skill found: {} owned by: {}", skill.getSkillId(), skill.getOwnerId());
+            log.info("Provider attempting to accept: {}", providerId);
+            
             if (!skill.getOwnerId().equals(providerId)) {
+                log.warn("Ownership mismatch - Skill owner: {}, Provider: {}", skill.getOwnerId(), providerId);
                 throw new UnauthorizedMissionAccessException("Only the skill owner can accept this mission");
             }
         } catch (FeignException.NotFound e) {
-            throw new SkillNotFoundException("Skill not found");
+            log.error("Skill not found with ID: {}", mission.getSkillId());
+            throw new SkillNotFoundException("Skill not found with ID: " + mission.getSkillId());
+        } catch (FeignException e) {
+            log.error("Error fetching skill: {}", e.getMessage());
+            throw new SkillNotFoundException("Error fetching skill: " + e.getMessage());
         }
         
         // Update mission

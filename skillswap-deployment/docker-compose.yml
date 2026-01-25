@@ -1,24 +1,64 @@
 version: '3.8'
+
 services:
-  mongo:
-    image: mongo:6
-    ports: ['27017:27017']
-    volumes: ['./data/mongo:/data/db']
-
+  # Redis - OTP Storage (Lightweight, ~5MB)
   redis:
-    image: redis:7
-    ports: ['6379:6379']
+    image: redis:7-alpine
+    container_name: skillswap-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    networks:
+      - skillswap-network
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
 
+  # Zookeeper - Required for Kafka (Lightweight)
   zookeeper:
-    image: bitnami/zookeeper:latest
-    environment: [ALLOW_ANONYMOUS_LOGIN=yes]
-    ports: ['2181:2181']
-
-  kafka:
-    image: bitnami/kafka:latest
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: skillswap-zookeeper
     environment:
-      - KAFKA_BROKER_ID=1
-      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_LISTENERS=PLAINTEXT://:9092
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
-    ports: ['9092:9092']
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - skillswap-network
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+    restart: unless-stopped
+
+  # Kafka - Event Streaming
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: skillswap-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_LOG_RETENTION_HOURS: 24
+      KAFKA_LOG_SEGMENT_BYTES: 104857600
+    networks:
+      - skillswap-network
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    restart: unless-stopped
+
+networks:
+  skillswap-network:
+    driver: bridge
+
+volumes:
+  zookeeper-data:
+  kafka-data:
+  redis-data:

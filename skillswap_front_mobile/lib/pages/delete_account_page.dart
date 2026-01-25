@@ -149,7 +149,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
         foregroundColor: Colors.white,
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,

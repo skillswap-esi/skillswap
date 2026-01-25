@@ -50,14 +50,23 @@ class _CreateMissionPageState extends State<CreateMissionPage> {
     if (_currentUser == null) return;
 
     try {
+      // Get backend user ID
+      final currentBackendUserId = authService.value.userProfile?.userId;
+      if (currentBackendUserId == null) {
+        print('[CreateMissionPage] Backend user ID not available yet');
+        return;
+      }
+      
       final threadId = await chatService.getOrCreateChatThread(
-        userId1: _currentUser!.uid,
+        userId1: currentBackendUserId,  // Use backend UUID, not Firebase UID
         userId2: widget.skill.ownerId ?? '',
         skillId: widget.skill.skillId ?? '',
+        skillTitle: widget.skill.title,
+        skillOwnerName: widget.skill.ownerName,
       );
       setState(() => _chatThreadId = threadId);
     } catch (e) {
-      print('Error initializing chat: $e');
+      print('[CreateMissionPage] Error initializing chat: $e');
     }
   }
 

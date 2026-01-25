@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: skillswap-config
+  namespace: skillswap
+data:
+  # PostgreSQL Configuration
+  POSTGRES_HOST: "postgres-service"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "skillswap"
+  
+  # MongoDB Configuration
+  MONGODB_HOST: "mongodb-service"
+  MONGODB_PORT: "27017"
+  MONGODB_DATABASE: "skillswap"
+  
+  # Kafka Configuration
+  KAFKA_BOOTSTRAP_SERVERS: "kafka-service:9092"
+  
+  # Service URLs
+  USER_SERVICE_URL: "http://user-service:8081"
+  SKILL_SERVICE_URL: "http://skill-service:8082"
+  MISSION_SERVICE_URL: "http://mission-service:8083"
+  NOTIFICATION_SERVICE_URL: "http://notification-service:8084"
+  
+  # Spring Profiles
+  SPRING_PROFILES_ACTIVE: "prod"

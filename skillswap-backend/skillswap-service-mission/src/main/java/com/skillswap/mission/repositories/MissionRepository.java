@@ -21,5 +21,7 @@ public interface MissionRepository extends MongoRepository<Mission, UUID> {
     
     List<Mission> findBySkillId(UUID skillId);
     
+    List<Mission> findBySkillIdAndStatus(UUID skillId, MissionStatus status);
+    
     List<Mission> findByStatus(MissionStatus status);
 }

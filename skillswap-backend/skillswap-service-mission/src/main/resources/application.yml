@@ -31,6 +31,10 @@ spring:
       enabled: false
 
 # Service URLs for Feign clients
+# IMPORTANT: These should point to the actual service locations
+# For local development: use localhost
+# For Docker: use service names (e.g., skillswap-service-user)
+# For production: use API Gateway or service discovery
 user:
   service:
     url: http://localhost:8081
@@ -38,6 +42,9 @@ user:
 skill:
   service:
     url: http://localhost:8082
+    # If services are not accessible, try:
+    # url: http://10.23.99.211:8082  # Direct IP
+    # url: http://skillswap-service-skill:8082  # Docker service name
 
 # Kafka topics
 kafka:

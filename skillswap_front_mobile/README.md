@@ -1,481 +1,674 @@
-# SkillSwap Mobile App - Complete Documentation
+# SkillSwap Mobile App - Flutter Application
 
-## Overview
+## 📋 Overview
 
-Flutter mobile application for SkillSwap platform - skill exchange with geolocation, missions, OTP validation, and real-time notifications.
+SkillSwap Mobile is a cross-platform Flutter application that enables users to exchange skills through a credit-based mission system. The app features real-time chat, geolocation-based skill discovery, push notifications, and OTP-validated mission completion.
 
-## Features
+## 🏗️ Architecture
 
-### ✅ Implemented
-- User registration with phone verification
-- Firebase authentication
-- Profile management with avatar
-- Skill creation with geolocation
-- Geolocation-based skill search
-- Mission request from skill details
-- Mission lifecycle management
-- OTP generation and validation
-- Real-time notifications
-- Credit system display
-- Chat (Firebase Firestore)
+### Application Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Flutter Mobile App                        │
+│                                                              │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐           │
+│  │   Pages    │  │  Widgets   │  │  Services  │           │
+│  │            │  │            │  │            │           │
+│  │ - Login    │  │ - Drawer   │  │ - API      │           │
+│  │ - Home     │  │ - Cards    │  │ - Auth     │           │
+│  │ - Skills   │  │ - Dialogs  │  │ - Chat     │           │
+│  │ - Missions │  │ - Lists    │  │ - FCM      │           │
+│  │ - Chat     │  │            │  │ - Mission  │           │
+│  └────────────┘  └────────────┘  └────────────┘           │
+│         │               │               │                   │
+│         └───────────────┴───────────────┘                   │
+│                         │                                   │
+│                         ▼                                   │
+│              ┌────────────────────┐                        │
+│              │  State Management  │                        │
+│              │    (Provider)      │                        │
+│              └────────────────────┘                        │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+        ┌──────────────┼──────────────┬──────────────┐
+        │              │              │              │
+        ▼              ▼              ▼              ▼
+┌──────────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────┐
+│ API Gateway  │ │ Firebase │ │Firestore │ │   Firebase   │
+│   (REST)     │ │  Auth    │ │  (Chat)  │ │  Messaging   │
+│   :8080      │ │          │ │          │ │    (FCM)     │
+└──────────────┘ └──────────┘ └──────────┘ └──────────────┘
+```
+
+### Layer Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Presentation Layer                    │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐             │
+│  │  Pages   │  │ Widgets  │  │ Dialogs  │             │
+│  └──────────┘  └──────────┘  └──────────┘             │
+└─────────────────────────────────────────────────────────┘
+                         │
+┌─────────────────────────────────────────────────────────┐
+│                   Business Logic Layer                   │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐             │
+│  │Providers │  │ Services │  │  Models  │             │
+│  └──────────┘  └──────────┘  └──────────┘             │
+└─────────────────────────────────────────────────────────┘
+                         │
+┌─────────────────────────────────────────────────────────┐
+│                      Data Layer                          │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐             │
+│  │   HTTP   │  │ Firebase │  │Firestore │             │
+│  └──────────┘  └──────────┘  └──────────┘             │
+└─────────────────────────────────────────────────────────┘
+```
+
+## 🎯 Features
+
+### ✅ Implemented Features
+
+#### Authentication & User Management
+- **Firebase Authentication**: Email/password and phone verification
+- **User Registration**: With phone OTP verification
+- **Profile Management**: Avatar, name, bio, skills
+- **Credit System**: View balance, transaction history
+- **Helper Score**: Reputation system based on completed missions
+
+#### Skill Management
+- **Create Skills**: With title, description, category, GPS location
+- **My Skills**: View and manage owned skills
+- **Explore Skills**: Geolocation-based search (15km radius)
+- **Skill Details**: View provider info, distance, ratings
+- **Categories**: INFORMATIQUE, CUISINE, JARDINAGE, BRICOLAGE, SCOLAIRE, SPORT, MUSIQUE, LANGUES, AUTRE
+
+#### Mission System
+- **Request Mission**: Book skills with date, time, duration, credits
+- **Mission Lifecycle**: PENDING → ACCEPTED → IN_PROGRESS → COMPLETED
+- **Accept/Reject**: Providers can accept or reject requests
+- **OTP Validation**: 6-digit code for mission completion
+- **Credit Transfer**: Automatic on OTP validation
+- **Mission History**: View all requested and helping missions
+- **Cancel Mission**: With reason
+
+#### Real-Time Chat
+- **Firestore Integration**: Real-time message synchronization
+- **Chat Threads**: One-to-one conversations
+- **Message History**: Persistent chat storage
+- **Typing Indicators**: Real-time presence
+- **Offline Support**: Messages sync when online
+
+#### Notifications
+- **Push Notifications**: Firebase Cloud Messaging (FCM)
+- **Notification Types**: Mission updates, chat messages, credits
+- **Notification Center**: View all notifications
+- **Badge Count**: Unread notification counter
+- **Background Handling**: Receive notifications when app is closed
+
+#### Geolocation & Maps
+- **GPS Detection**: Automatic location detection
+- **Map View**: OpenStreetMap integration (no API key required)
+- **Skill Markers**: Display skills on map
+- **Distance Calculation**: Show distance to skills
+- **Navigation**: Open external maps app for directions
 
 ### 📱 Screens
-- Welcome/Splash
-- Login/Register
-- Complete Profile
-- Home Dashboard
-- Explore Skills (with map)
-- Skill Detail
-- Create/Edit Skill
-- My Skills
-- Request Mission Dialog
-- Missions (Requested/Helping tabs)
-- Mission Detail (with OTP)
-- Notifications
-- Settings
-- Edit Profile
-- Change Password
-- Delete Account
 
-## Quick Start
+#### Authentication Flow
+1. **Welcome Page**: App introduction and navigation
+2. **Login Page**: Email/password authentication
+3. **Register Page**: New user registration with phone
+4. **Complete Profile Page**: Avatar and additional info
 
-### 1. Install Dependencies
+#### Main Flow
+5. **Home Page**: Dashboard with 4 tabs (Home, Explore, Chats, Profile)
+6. **Explore Skills Page**: Search and filter skills
+7. **Skill Detail Page**: View skill and request mission
+8. **Create Skill Page**: Publish new skill
+9. **My Skills Page**: Manage owned skills
+
+#### Mission Flow
+10. **Missions Page**: View requested and helping missions
+11. **Mission Detail Page**: Mission info, OTP, actions
+12. **Create Mission Page**: Request mission dialog
+
+#### Communication
+13. **Chats List Page**: All conversations (placeholder)
+14. **Chat Page**: Real-time messaging
+15. **Notifications Page**: Notification center
+
+#### Settings
+16. **Profile Page**: View and edit profile (placeholder)
+17. **Settings Page**: App preferences
+18. **Edit Profile Page**: Update user information
+19. **Change Password Page**: Security settings
+20. **Delete Account Page**: Account deletion
+
+## 🛠️ Technology Stack
+
+### Core Technologies
+- **Flutter**: 3.x
+- **Dart**: 3.x
+- **Minimum SDK**: Android 21 (5.0), iOS 12
+
+### State Management
+- **Provider**: ^6.1.1 - Reactive state management
+- **ChangeNotifier**: For user state and authentication
+
+### Backend Integration
+- **http**: ^1.1.0 - REST API communication
+- **API Gateway**: http://localhost:8080 (configurable)
+
+### Firebase Services
+- **firebase_core**: ^2.24.2 - Firebase initialization
+- **firebase_auth**: ^4.15.3 - Authentication
+- **cloud_firestore**: ^4.13.6 - Real-time database (chat)
+- **firebase_messaging**: ^14.7.9 - Push notifications (FCM)
+
+### Geolocation & Maps
+- **geolocator**: ^10.1.0 - GPS location services
+- **flutter_map**: ^7.0.2 - OpenStreetMap integration (free, no API key)
+- **latlong2**: ^0.9.1 - Latitude/longitude utilities
+
+### UI & Utilities
+- **intl**: ^0.18.1 - Date/time formatting and internationalization
+- **Material Design**: Flutter's built-in UI framework
+
+## 📁 Project Structure
+
+```
+lib/
+├── main.dart                          # App entry point
+├── auth_service.dart                  # Authentication service
+│
+├── core/                              # Core configuration
+│   ├── api_config.dart               # API URLs and configuration
+│   ├── app_assets.dart               # Asset paths
+│   └── app_colors.dart               # Color palette
+│
+├── models/                            # Data models
+│   ├── user_model.dart               # User entity
+│   ├── skill_model.dart              # Skill entity
+│   ├── mission_model.dart            # Mission entity
+│   ├── notification_model.dart       # Notification entity
+│   └── chat_model.dart               # Chat message entity
+│
+├── services/                          # Business logic services
+│   ├── api_service.dart              # HTTP client wrapper
+│   ├── skill_service.dart            # Skill API calls
+│   ├── mission_service.dart          # Mission API calls
+│   ├── notification_service.dart     # Notification API calls
+│   ├── chat_service.dart             # Firestore chat operations
+│   └── fcm_service.dart              # Push notification handling
+│
+├── providers/                         # State management
+│   └── user_provider.dart            # User state provider
+│
+├── pages/                             # UI screens
+│   ├── welcome_page.dart             # Splash/welcome screen
+│   ├── login_page.dart               # Login form
+│   ├── register_page.dart            # Registration form
+│   ├── complete_profile_page.dart    # Profile completion
+│   ├── home_page.dart                # Main dashboard (4 tabs)
+│   ├── explore_skills_page.dart      # Skill search and list
+│   ├── skill_detail_page.dart        # Skill details
+│   ├── create_skill_page.dart        # Create new skill
+│   ├── my_skills_page.dart           # User's skills
+│   ├── missions_page.dart            # Mission list (2 tabs)
+│   ├── mission_detail_page.dart      # Mission details and OTP
+│   ├── create_mission_page.dart      # Request mission
+│   ├── chats_list_page.dart          # Chat list (placeholder)
+│   ├── chat_page.dart                # Real-time chat
+│   ├── notifications_page.dart       # Notification center
+│   ├── profile_page.dart             # User profile (placeholder)
+│   ├── simple_profile_page.dart      # Simple profile view
+│   ├── settings_page.dart            # App settings
+│   ├── edit_profile_page.dart        # Edit profile form
+│   ├── change_password_page.dart     # Change password
+│   ├── delete_account_page.dart      # Delete account
+│   └── map_picker_page.dart          # Location picker
+│
+└── widgets/                           # Reusable components
+    ├── custom_drawer.dart            # Navigation drawer
+    └── notifications_panel.dart      # Notification panel
+```
+
+## 🔄 Data Flow
+
+### Authentication Flow
+```
+1. User enters credentials
+2. AuthService validates with Firebase
+3. Firebase returns ID token
+4. App calls /api/auth/login with Firebase token
+5. Backend validates and returns JWT
+6. JWT stored in memory
+7. UserProvider updates state
+8. Navigate to Home
+```
+
+### Skill Search Flow
+```
+1. User opens Explore tab
+2. Geolocator gets current position
+3. SkillService calls /api/skills/near
+4. Backend queries MongoDB with $near
+5. Results enriched with user data
+6. Skills displayed on map and list
+7. User can filter by category
+```
+
+### Mission Request Flow
+```
+1. User views skill detail
+2. Clicks "Request Mission"
+3. Fills mission form (date, time, duration, credits)
+4. MissionService calls /api/missions
+5. Backend creates mission (PENDING)
+6. Credits debited from requester
+7. Kafka event triggers notification
+8. Provider receives FCM push
+9. Mission appears in provider's "Helping" tab
+```
+
+### OTP Validation Flow
+```
+1. Provider opens mission detail
+2. Clicks "Generate OTP"
+3. Backend generates 6-digit code
+4. Code stored in Redis (5 min TTL)
+5. Provider shows code to requester
+6. Requester enters code in app
+7. MissionService validates OTP
+8. Mission status → COMPLETED
+9. Credits transferred
+10. Both users receive notification
+```
+
+### Chat Flow
+```
+1. User clicks chat icon
+2. ChatService creates/gets Firestore thread
+3. Thread ID: {userId1}_{userId2}_{skillId}
+4. Messages synced in real-time
+5. New message triggers FCM notification
+6. Offline messages sync when online
+```
+
+## 🔐 Security
+
+### Authentication
+- **Firebase Authentication**: Secure email/password and phone verification
+- **JWT Tokens**: Stored in memory (not persisted)
+- **Token Refresh**: Automatic on expiration
+- **Secure Storage**: Sensitive data encrypted
+
+### API Security
+- **HTTPS**: All API calls over TLS (production)
+- **JWT Header**: `Authorization: Bearer {token}`
+- **User ID Validation**: Backend validates user identity
+- **Rate Limiting**: Backend enforces rate limits
+
+### Data Privacy
+- **Location Privacy**: Exact location never shared with other users
+- **Approximate Distance**: Only distance shown, not coordinates
+- **Profile Control**: Users control what information is public
+- **Chat Encryption**: Firestore security rules enforce access control
+
+### Firestore Security Rules
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Chat threads accessible only to participants
+    match /chat_threads/{threadId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid in resource.data.firebaseUids;
+    }
+    
+    // Messages accessible only to thread participants
+    match /chat_threads/{threadId}/messages/{messageId} {
+      allow read: if request.auth != null && 
+        request.auth.uid in get(/databases/$(database)/documents/chat_threads/$(threadId)).data.firebaseUids;
+      allow create: if request.auth != null && 
+        request.auth.uid in get(/databases/$(database)/documents/chat_threads/$(threadId)).data.firebaseUids;
+    }
+  }
+}
+```
+
+## 🚀 Setup & Installation
+
+### Prerequisites
+- Flutter SDK 3.x
+- Dart SDK 3.x
+- Android Studio / Xcode
+- Firebase project
+- Backend services running
+
+### 1. Install Flutter
+```bash
+# Download Flutter SDK
+# https://flutter.dev/docs/get-started/install
+
+# Verify installation
+flutter doctor
+```
+
+### 2. Clone and Install Dependencies
 ```bash
 cd skillswap_front_mobile
 flutter pub get
 ```
 
-### 2. Configure API URL
+### 3. Configure API URL
 
 Edit `lib/core/api_config.dart`:
 
-**For Android Emulator:**
 ```dart
-static const String _androidEmulatorUrl = 'http://10.0.2.2:8080';
+class ApiConfig {
+  // For Android Emulator
+  static const String _androidEmulatorUrl = 'http://10.0.2.2:8080';
+  
+  // For iOS Simulator
+  static const String _iosSimulatorUrl = 'http://localhost:8080';
+  
+  // For Physical Device (use your computer's IP)
+  static const String _physicalDeviceUrl = 'http://192.168.1.100:8080';
+  
+  // For Web
+  static const String _webUrl = 'http://localhost:8080';
+}
 ```
 
-**For iOS Simulator:**
-```dart
-static const String _webUrl = 'http://localhost:8080';
-```
-
-**For Physical Device:**
-```dart
-static const String _webUrl = 'http://YOUR_COMPUTER_IP:8080';
-```
-
-Find your IP:
-```cmd
-ipconfig  # Windows
-ifconfig  # Mac/Linux
-```
-
-### 3. Run App
+**Find Your IP Address**:
 ```bash
+# Windows
+ipconfig
+
+# Mac/Linux
+ifconfig
+```
+
+### 4. Configure Firebase
+
+#### Android
+1. Download `google-services.json` from Firebase Console
+2. Place in `android/app/google-services.json`
+
+#### iOS
+1. Download `GoogleService-Info.plist` from Firebase Console
+2. Place in `ios/Runner/GoogleService-Info.plist`
+
+#### Update Firebase Options
+```bash
+# Install FlutterFire CLI
+dart pub global activate flutterfire_cli
+
+# Configure Firebase
+flutterfire configure
+```
+
+### 5. Deploy Firestore Rules
+```bash
+# From skillswap_front_mobile directory
+firebase deploy --only firestore:rules
+```
+
+### 6. Run the App
+```bash
+# List available devices
+flutter devices
+
+# Run on specific device
+flutter run -d <device-id>
+
+# Run in debug mode
 flutter run
+
+# Run in release mode
+flutter run --release
 ```
 
-Choose device:
-- [1] Android Emulator
-- [2] iOS Simulator
-- [3] Chrome (web)
+## 🧪 Testing
 
-## Complete User Flows
+### Run Tests
+```bash
+# Run all tests
+flutter test
 
-### S1 - Registration
-1. Open app → Click "Register"
-2. Enter: name, email, phone, password
-3. Submit form
-4. Firebase sends OTP to phone
-5. Enter OTP code
-6. Account created with 20 credits
-7. Welcome notification received
+# Run specific test file
+flutter test test/widget_test.dart
 
-### S2 - Login
-1. Open app → Click "Login"
-2. Enter email + password
-3. Firebase validates
-4. JWT token stored
-5. Navigate to Home
-
-### S3 - Publish Skill
-1. Navigate to "My Skills"
-2. Click "+" button
-3. Fill form:
-   - Title
-   - Description
-   - Category (dropdown)
-   - GPS location (auto-detected)
-4. Submit
-5. Skill appears in "My Skills"
-
-### S4 - Search Skills
-1. Navigate to "Explore Skills"
-2. App requests GPS permission
-3. Skills loaded within 15km radius
-4. Sorted by:
-   - Helper Score
-   - Distance
-5. View on map or list
-6. Filter by category
-
-### S5 - View Provider Profile
-1. Click on skill card
-2. View skill details:
-   - Title, description, category
-   - Provider name (if enriched)
-   - Distance
-   - Location (approximate)
-3. See "Request Mission" button
-
-### S6 - Chat (Firebase Firestore)
-1. Click chat icon on profile
-2. Firestore thread created
-3. Send/receive messages in real-time
-4. Push notifications for new messages
-
-### S7 - Choose Meeting Place
-**Current:** Location copied from skill  
-**Future:** 
-- Select from partner places list
-- Pick custom location on map
-
-### S8 - Request Mission
-1. On skill detail page
-2. Click "Request Mission"
-3. Fill dialog:
-   - Title (pre-filled)
-   - Description
-   - Date picker
-   - Time picker
-   - Duration slider (30-240 min)
-   - Credit cost slider (5-50 credits)
-4. Submit
-5. Credits debited
-6. Mission created (PENDING)
-7. Provider receives notification
-
-### S9 - Accept/Reject Mission
-**Provider Side:**
-1. Receive notification
-2. Navigate to "My Missions" → "Helping" tab
-3. See pending mission
-4. Click mission → View details
-5. Click "Accept" or "Reject"
-6. If accepted:
-   - Status → ACCEPTED
-   - Requester notified
-
-**Requester Side:**
-1. Receive acceptance notification
-2. View mission in "Requested" tab
-3. Status shows ACCEPTED
-
-### S10 - Navigate to Meeting
-1. Open mission detail
-2. Click "Navigate" button
-3. Maps app opens (supports any installed maps app)
-4. Navigate to meeting point
-
-### S11 - OTP Validation
-**Provider (Generate OTP):**
-1. On mission day, open mission
-2. Click "Start Mission"
-3. Status → IN_PROGRESS
-4. Click "Generate OTP"
-5. 6-digit code displayed
-6. Show code to requester
-
-**Requester (Validate OTP):**
-1. Mission status shows IN_PROGRESS
-2. See "Enter OTP" field
-3. Type 6-digit code
-4. Click "Validate"
-5. System verifies OTP
-6. Status → COMPLETED
-7. Credits transferred
-
-### S12 - Credit Transfer
-**Automatic:**
-1. OTP validated successfully
-2. Provider receives credits
-3. Both users receive notification
-4. Mission marked COMPLETED
-5. Helper Score updated
-6. Transaction recorded in Ledger
-
-## Project Structure
-
+# Run with coverage
+flutter test --coverage
 ```
-lib/
-├── main.dart
-├── auth_service.dart
-├── core/
-│   ├── api_config.dart
-│   ├── app_assets.dart
-│   └── app_colors.dart
-├── models/
-│   ├── user_model.dart
-│   ├── skill_model.dart
-│   ├── mission_model.dart
-│   └── notification_model.dart
-├── services/
-│   ├── api_service.dart
-│   ├── skill_service.dart
-│   ├── mission_service.dart
-│   └── notification_service.dart
-├── providers/
-│   └── user_provider.dart
-├── pages/
-│   ├── welcome_page.dart
-│   ├── login_page.dart
-│   ├── register_page.dart
-│   ├── complete_profile_page.dart
-│   ├── home_page.dart
-│   ├── explore_skills_page.dart
-│   ├── skill_detail_page.dart
-│   ├── create_skill_page.dart
-│   ├── my_skills_page.dart
-│   ├── missions_page.dart
-│   ├── mission_detail_page.dart
-│   ├── notifications_page.dart
-│   ├── settings_page.dart
-│   ├── edit_profile_page.dart
-│   ├── change_password_page.dart
-│   └── delete_account_page.dart
-└── widgets/
-    └── custom_drawer.dart
-```
-
-## API Integration
-
-All API calls go through API Gateway (port 8080):
-
-### Authentication
-```dart
-POST /api/auth/register
-POST /api/auth/login
-```
-
-### Skills
-```dart
-POST   /api/skills
-GET    /api/skills/near?lat={lat}&lng={lng}&radius={r}&category={cat}
-GET    /api/skills/user/{userId}
-PUT    /api/skills/{id}
-DELETE /api/skills/{id}
-```
-
-### Missions
-```dart
-POST   /api/missions
-GET    /api/missions/user/{userId}?role={REQUESTER|HELPER}&status={status}
-POST   /api/missions/{id}/accept
-POST   /api/missions/{id}/reject
-POST   /api/missions/{id}/start
-POST   /api/missions/{id}/generate-otp
-POST   /api/missions/{id}/validate-otp
-POST   /api/missions/{id}/cancel
-```
-
-### Notifications
-```dart
-GET    /api/notifications
-GET    /api/notifications/unread
-GET    /api/notifications/unread/count
-POST   /api/notifications/{id}/read
-POST   /api/notifications/read-all
-DELETE /api/notifications/{id}
-POST   /api/notifications/token
-```
-
-## Firebase Configuration
-
-### 1. Firebase Auth
-- Email/Password authentication
-- Phone verification with OTP
-- JWT token generation
-
-### 2. Firebase Firestore
-- Real-time chat threads
-- Message synchronization
-- Offline support
-
-### 3. Firebase Cloud Messaging (FCM)
-- Push notifications
-- Token registration
-- Background message handling
-
-### Setup
-1. Download `google-services.json` (Android)
-2. Download `GoogleService-Info.plist` (iOS)
-3. Place in respective folders
-4. Update `firebase_options.dart`
-
-## State Management
-
-Using **Provider** pattern:
-
-```dart
-UserProvider - User profile and authentication state
-```
-
-## Key Dependencies
-
-```yaml
-dependencies:
-  flutter:
-    sdk: flutter
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  firebase_messaging: ^14.7.9
-  cloud_firestore: ^4.13.6
-  http: ^1.1.0
-  provider: ^6.1.1
-  geolocator: ^10.1.0
-  flutter_map: ^7.0.2             # OpenStreetMap (free, no API key)
-  latlong2: ^0.9.1                 # Lat/Lng utilities
-  intl: ^0.18.1
-```
-
-## Testing
 
 ### Manual Testing Checklist
-- [ ] Register new user
-- [ ] Verify phone with OTP
-- [ ] Login with credentials
-- [ ] Create skill with GPS
+- [ ] Register new user with phone verification
+- [ ] Login with existing credentials
+- [ ] Create skill with GPS location
 - [ ] Search nearby skills
 - [ ] View skill details
 - [ ] Request mission
 - [ ] Accept mission (as provider)
-- [ ] Start mission
 - [ ] Generate OTP
 - [ ] Validate OTP
-- [ ] Check notifications
+- [ ] Send chat message
+- [ ] Receive push notification
 - [ ] View credit balance
-- [ ] Chat with user
+- [ ] Update profile
 
-### Test Accounts
-Create multiple accounts to test:
-- Requester account
-- Provider account
-- Test mission flow between them
-
-## Troubleshooting
+## 🐛 Troubleshooting
 
 ### Cannot Connect to Backend
-- Check API URL in `api_config.dart`
-- Android emulator: Use `10.0.2.2`
-- iOS simulator: Use `localhost`
-- Physical device: Use computer's IP
-- Verify backend services are running
+**Problem**: API calls fail with connection error
+
+**Solutions**:
+1. Check API URL in `api_config.dart`
+2. Android emulator: Use `10.0.2.2` instead of `localhost`
+3. iOS simulator: Use `localhost`
+4. Physical device: Use computer's IP address
+5. Verify backend services are running
+6. Check firewall settings
 
 ### GPS Not Working
-- Enable location permissions
-- Android: Settings → Apps → SkillSwap → Permissions
-- iOS: Settings → Privacy → Location Services
+**Problem**: Location services not available
+
+**Solutions**:
+1. Enable location permissions in device settings
+2. Android: Settings → Apps → SkillSwap → Permissions → Location
+3. iOS: Settings → Privacy → Location Services → SkillSwap
+4. Check `geolocator` package configuration
+5. Test on physical device (emulator GPS may be unreliable)
 
 ### Firebase Auth Errors
-- Check `google-services.json` is present
-- Verify Firebase project configuration
-- Check internet connection
+**Problem**: Authentication fails
+
+**Solutions**:
+1. Verify `google-services.json` / `GoogleService-Info.plist` is present
+2. Check Firebase project configuration
+3. Ensure email/password auth is enabled in Firebase Console
+4. Verify internet connection
+5. Check Firebase quota limits
 
 ### OTP Not Received
-- Verify phone number format
-- Check Firebase console for SMS quota
-- Test with Firebase test phone numbers
+**Problem**: SMS OTP not delivered
+
+**Solutions**:
+1. Verify phone number format (+country code)
+2. Check Firebase Console for SMS quota
+3. Use Firebase test phone numbers for development
+4. Verify phone authentication is enabled
+5. Check SMS provider configuration
 
 ### Notifications Not Showing
-- Enable notification permissions
-- Register FCM token on login
-- Check backend notification service is running
-- Verify Firebase Cloud Messaging is enabled
+**Problem**: Push notifications not received
 
-## Performance Optimization
+**Solutions**:
+1. Enable notification permissions
+2. Register FCM token on login
+3. Check backend notification service is running
+4. Verify Firebase Cloud Messaging is enabled
+5. Test on physical device (emulator FCM may not work)
+6. Check FCM token is stored in backend
+
+### Firestore Permission Denied
+**Problem**: Chat messages fail to send
+
+**Solutions**:
+1. Deploy Firestore security rules
+2. Verify user is authenticated
+3. Check Firebase UID is in `firebaseUids` array
+4. Review Firestore rules in Firebase Console
+5. Check internet connection
+
+### Build Errors
+**Problem**: App fails to build
+
+**Solutions**:
+```bash
+# Clean build
+flutter clean
+flutter pub get
+
+# Update dependencies
+flutter pub upgrade
+
+# Check for conflicts
+flutter doctor
+
+# Rebuild
+flutter run
+```
+
+## 📊 Performance Optimization
 
 ### Image Loading
-- Use cached network images
-- Compress avatars before upload
+- Use `CachedNetworkImage` for avatars
+- Compress images before upload
 - Lazy load skill images
+- Implement image placeholders
 
 ### API Calls
 - Cache frequently accessed data
 - Debounce search queries
-- Pagination for large lists
+- Implement pagination for large lists
+- Use pull-to-refresh pattern
 
-### GPS
+### GPS & Location
 - Cache last known location
 - Update location only when needed
 - Use coarse location for search
+- Implement location permission handling
 
-## Security
+### State Management
+- Use Provider for reactive updates
+- Avoid unnecessary rebuilds
+- Implement proper dispose methods
+- Use const constructors where possible
 
-### API Security
-- All requests include JWT token
-- Token stored securely
-- Auto-refresh on expiration
+## 🚢 Build & Release
 
-### Data Validation
-- Client-side form validation
-- Server-side validation
-- Sanitize user inputs
+### Android Release
+```bash
+# Build APK
+flutter build apk --release
 
-### Privacy
-- Exact location never shared
-- Only approximate distance shown
-- Profile data controlled by user
+# Build App Bundle (for Play Store)
+flutter build appbundle --release
 
-## Future Enhancements
+# Output location
+build/app/outputs/flutter-apk/app-release.apk
+build/app/outputs/bundle/release/app-release.aab
+```
 
-### Phase 1
+### iOS Release
+```bash
+# Build iOS app
+flutter build ios --release
+
+# Archive in Xcode
+open ios/Runner.xcworkspace
+# Product → Archive
+```
+
+### Web Release
+```bash
+# Build web app
+flutter build web --release
+
+# Output location
+build/web/
+```
+
+## 📈 Future Enhancements
+
+### Phase 1 (Q1 2026)
 - [ ] Offline mode support
 - [ ] Image upload for skills
 - [ ] Rating and review system
-- [ ] Mission history with stats
+- [ ] Mission history with statistics
+- [ ] Advanced search filters
 
-### Phase 2
+### Phase 2 (Q2 2026)
 - [ ] Partner places integration
 - [ ] In-app navigation
 - [ ] Video call for remote skills
 - [ ] Payment gateway integration
+- [ ] Multi-language support
 
-### Phase 3
+### Phase 3 (Q3 2026)
 - [ ] AI skill recommendations
 - [ ] Gamification (badges, levels)
 - [ ] Social features (follow, share)
-- [ ] Multi-language support
+- [ ] Advanced analytics dashboard
+- [ ] Dark mode
 
-## Build & Release
+## 📚 Resources
 
-### Android
+### Documentation
+- [Flutter Documentation](https://flutter.dev/docs)
+- [Firebase Documentation](https://firebase.google.com/docs)
+- [Provider Package](https://pub.dev/packages/provider)
+- [Flutter Map](https://pub.dev/packages/flutter_map)
+
+### Tutorials
+- [Flutter Cookbook](https://flutter.dev/docs/cookbook)
+- [Firebase with Flutter](https://firebase.google.com/docs/flutter/setup)
+- [State Management](https://flutter.dev/docs/development/data-and-backend/state-mgmt)
+
+## 🤝 Contributing
+
+### Code Style
+- Follow [Dart Style Guide](https://dart.dev/guides/language/effective-dart/style)
+- Use meaningful variable names
+- Add comments for complex logic
+- Format code with `dart format`
+
+### Git Workflow
 ```bash
-flutter build apk --release
-flutter build appbundle --release
+# Create feature branch
+git checkout -b feature/new-feature
+
+# Commit changes
+git add .
+git commit -m "feat: add new feature"
+
+# Push to remote
+git push origin feature/new-feature
 ```
 
-### iOS
-```bash
-flutter build ios --release
-```
+## 📄 License
 
-### Web
-```bash
-flutter build web --release
-```
-
-## Support
-
-For issues:
-1. Check console logs
-2. Verify backend is running
-3. Test API endpoints with Postman
-4. Check Firebase console
-5. Review this documentation
+Private Project - All Rights Reserved
 
 ---
 
-**Version:** 1.0.0  
-**Platform:** Flutter 3.x  
-**Min SDK:** Android 21, iOS 12  
-**Status:** Production Ready
+**Version**: 1.0.0  
+**Platform**: Flutter 3.x  
+**Min SDK**: Android 21, iOS 12  
+**Status**: Production Ready  
+**Last Updated**: January 2026
