@@ -1,0 +1,67 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: service-mission
+  data:
+    mongodb:
+      uri: mongodb+srv://skillswap-mission:VCpp9360dFMZoFur@skillwap.u9axyod.mongodb.net/skillswap-mission?retryWrites=true&w=majority&appName=skillwap
+      auto-index-creation: true
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: missionEvent:com.skillswap.mission.events.MissionEvent
+    admin:
+      auto-create: true
+  cloud:
+    compatibility-verifier:
+      enabled: false
+
+# Service URLs for Feign clients
+# IMPORTANT: These should point to the actual service locations
+# For local development: use localhost
+# For Docker: use service names (e.g., skillswap-service-user)
+# For production: use API Gateway or service discovery
+user:
+  service:
+    url: http://localhost:8081
+
+skill:
+  service:
+    url: http://localhost:8082
+    # If services are not accessible, try:
+    # url: http://10.23.99.211:8082  # Direct IP
+    # url: http://skillswap-service-skill:8082  # Docker service name
+
+# Kafka topics
+kafka:
+  topics:
+    mission-events: mission-events
+
+# OTP configuration
+otp:
+  expiration-minutes: 5
+  length: 6
+
+# Feature flags
+mission:
+  enrich-with-user-data: true
+
+logging:
+  level:
+    com.skillswap.mission: DEBUG
+    org.springframework.data.mongodb: INFO
+    org.springframework.kafka: INFO

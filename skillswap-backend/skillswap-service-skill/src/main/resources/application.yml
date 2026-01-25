@@ -1,0 +1,27 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: service-skill
+  data:
+    mongodb:
+      uri: mongodb+srv://skillswap-skill:sHJbFkZ7mpJPMOxN@skillswap.qjsfngt.mongodb.net/skillswap-skills?retryWrites=true&w=majority&appName=skillswap
+      auto-index-creation: true
+  cloud:
+    compatibility-verifier:
+      enabled: false
+
+# User service configuration
+user:
+  service:
+    url: http://localhost:8081
+
+# Feature flags
+skill:
+  enrich-with-user-data: true
+
+logging:
+  level:
+    com.skillswap.skill: DEBUG
+    org.springframework.data.mongodb: INFO

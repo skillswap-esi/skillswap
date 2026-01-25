@@ -1,0 +1,28 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: service-user
+  data:
+    mongodb:
+      uri: mongodb+srv://skillswap-user:SkillSwap2024!Secure@skillswap.f7fyqzw.mongodb.net/skillswap-users?retryWrites=true&w=majority&appName=skillswap
+      auto-index-creation: true
+
+# Configuration Firebase
+firebase:
+  credentials-path: classpath:firebase-service-account.json
+
+# Configuration JWT
+jwt:
+  secret: skillswap-secret-key-change-this-in-production-2024
+  expiration: 86400000
+
+# Configuration des crédits
+credits:
+  phone-verification-bonus: 50
+
+logging:
+  level:
+    com.skillswap.user: DEBUG
+    org.springframework.data.mongodb: INFO

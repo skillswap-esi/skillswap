@@ -1,0 +1,34 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: service-notification
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: notification-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.type.mapping: missionEvent:com.skillswap.notification.events.MissionEvent
+        spring.json.trusted.packages: com.skillswap.notification.events
+      auto-offset-reset: earliest
+  cloud:
+    compatibility-verifier:
+      enabled: false
+
+# Kafka topics
+kafka:
+  topics:
+    mission-events: mission-events
+
+# Firebase Configuration
+firebase:
+  credentials-path: classpath:firebase-service-account.json
+  enabled: false  # Set to true when you configure real Firebase credentials
+
+logging:
+  level:
+    com.skillswap.notification: DEBUG
+    org.springframework.kafka: INFO

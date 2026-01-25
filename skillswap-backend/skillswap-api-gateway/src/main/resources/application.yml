@@ -1,0 +1,22 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      # Routes are defined in GatewayConfig.java for proper JWT filter handling
+      # Do NOT define routes here to avoid conflicts
+      
+      # CORS is handled by CorsConfig.java bean
+      # Do NOT add globalcors here to prevent duplicate headers
+
+jwt:
+  secret: skillswap-secret-key-change-this-in-production-2024
+  expiration: 86400000
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.skillswap.gateway: DEBUG

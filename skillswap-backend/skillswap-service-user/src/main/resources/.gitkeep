@@ -1,0 +1,3 @@
+# Ce fichier permet de garder le dossier resources dans git
+# Placez votre fichier firebase-service-account.json ici
+# (il sera ignoré par .gitignore)
